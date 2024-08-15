@@ -1,0 +1,5 @@
+Build the docker image while in the frontend directory:
+Docker build -t frontend . 
+
+Hosting on local port 8000, the file main. It reloads for each change, this is a development way of running the code. In production you would leave --reload out. 
+uvicorn main:app --reload
