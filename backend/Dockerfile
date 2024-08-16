@@ -1,5 +1,7 @@
 # Use an official Python 3 runtime as a parent image
 FROM python:3.9
+ # Install ping
+RUN apt-get update && apt-get install -y iputils-ping iproute2 vim
 
 # Set the working directory in the container
 WORKDIR /app
@@ -14,7 +16,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 COPY . /app
 
 # Make port 5000 available to the world outside this container
-EXPOSE 5000
+EXPOSE 8000
 
 # Run the application
-CMD ["python3", "app.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -1,17 +1,17 @@
-services:
-  backend:
-    build:
+services: # Define the services that make up your app
+  backend: # Define the backend service
+    build: # build the backend service using the Dockerfile in the ./backend directory
       context: ./backend
       dockerfile: Dockerfile
     container_name: backend-container
-    ports:
-      - "5000:5000"  # Expose the backend service on port 5000
+    ports: 
+      - "8000:8000"  # Expose the backend service on port 5000
     environment:
       - ENV_VAR_NAME=value  # Add any environment variables your backend needs
     volumes:
       - ./backend:/app  # Bind mount your backend source code for development
     networks:
-      - app-network
+      - app-network # Connect the backend service to the app-network
 
   frontend:
     build:

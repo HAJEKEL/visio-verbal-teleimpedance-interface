@@ -1,5 +1,29 @@
-Build the docker image while in the frontend directory:
-Docker build -t frontend . 
+Build the docker image while in the backend directory:
+Docker build -t backend . 
 
 Hosting on local port 8000, the file main. It reloads for each change, this is a development way of running the code. In production you would leave --reload out. 
 uvicorn main:app --reload
+
+Checking the networks, bridge is docker's default network:
+docker inspect bridge 
+
+Check the ip addresses:
+ip address show
+
+docker network ls:
+The docker networks
+
+Connect docker port 8000 to host port 8000.
+We use 8000 because thats what uvicorn publishes to. 
+Because docker isolates from host initially.
+This is more safe from network perspective (--rm=removes itself after we're done with it) (d=detached/background):
+docker run -itd --rm --network app-bridge --name backend -p 8000:8000 backend
+
+create your own docker network (which will be the same as bridge):
+Its called user-defined bridge:
+docker network create insertnetworknamehere
+This allows you to ping containers by name
+
+To acces the container using tty:
+
+docker exec -it "container_name" /bin/bash

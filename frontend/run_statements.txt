@@ -1,0 +1,2 @@
+Build the docker image while in the frontend directory:
+Docker build -t frontend . 
