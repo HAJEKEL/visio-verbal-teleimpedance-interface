@@ -1,7 +1,23 @@
 # Use an official Python 3 runtime as a parent image
 FROM python:3.9
- # Install ping
-RUN apt-get update && apt-get install -y iputils-ping iproute2 vim
+
+# Install ping, iproute2, and vim
+RUN apt-get update && apt-get install -y \
+    iputils-ping \
+    iproute2 \
+    vim
+
+# Install Ngrok
+RUN curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+    | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+    && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+    | sudo tee /etc/apt/sources.list.d/ngrok.list \
+    && sudo apt update \
+    && sudo apt install -y ngrok
+
+# Set up Ngrok authtoken using an environment variable
+ARG NGROK_AUTH_TOKEN
+RUN ngrok config add-authtoken $NGROK_AUTH_TOKEN
 
 # Set the working directory in the container
 WORKDIR /app
@@ -15,8 +31,8 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . /app
 
-# Make port 5000 available to the world outside this container
+# Make port 8000 available to the world outside this container
 EXPOSE 8000
 
 # Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["sh", "-c", "ngrok http 8000 & uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]
