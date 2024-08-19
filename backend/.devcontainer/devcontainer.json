@@ -6,5 +6,9 @@
 	},
 	"forwardPorts": [
 		8000
+	],
+	"runArgs": [
+		"--network",
+		"host"
 	]
 }

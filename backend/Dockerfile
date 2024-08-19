@@ -5,19 +5,22 @@ FROM python:3.9
 RUN apt-get update && apt-get install -y \
     iputils-ping \
     iproute2 \
-    vim
+    vim \
+    curl
 
 # Install Ngrok
 RUN curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-    | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+    | tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
     && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-    | sudo tee /etc/apt/sources.list.d/ngrok.list \
-    && sudo apt update \
-    && sudo apt install -y ngrok
+    | tee /etc/apt/sources.list.d/ngrok.list \
+    && apt-get update \
+    && apt-get install -y ngrok
 
-# Set up Ngrok authtoken using an environment variable
-ARG NGROK_AUTH_TOKEN
-RUN ngrok config add-authtoken $NGROK_AUTH_TOKEN
+# Copy the .env file into the container
+COPY .env /app/
+
+# Set up Ngrok authtoken using an environment variable from .env file
+RUN export $(cat /app/.env | xargs) && ngrok config add-authtoken ${NGROK_AUTH_TOKEN}
 
 # Set the working directory in the container
 WORKDIR /app
@@ -26,7 +29,7 @@ WORKDIR /app
 COPY requirements.txt /app/
 
 # Install any needed packages specified in requirements.txt
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir --upgrade pip && pip3 install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code into the container
 COPY . /app
