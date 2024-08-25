@@ -6,9 +6,24 @@ RUN apt-get update && apt-get install -y \
     iputils-ping \
     iproute2 \
     vim \
-    curl
+    curl \
+    tmux
 
-# Install Ngrok
+# Copy the .tmux.conf file to the home directory of the container
+COPY .tmux.conf /root/.tmux.conf
+
+# Append the specified lines to the end of the .bashrc file
+RUN echo '_tmux_sessions() {' >> /root/.bashrc && \
+    echo '    local cur=${COMP_WORDS[COMP_CWORD]}' >> /root/.bashrc && \
+    echo '    local sessions=$(tmux list-sessions -F "#S")' >> /root/.bashrc && \
+    echo '    COMPREPLY=( $(compgen -W "${sessions}" -- ${cur}) )' >> /root/.bashrc && \
+    echo '}' >> /root/.bashrc && \
+    echo '' >> /root/.bashrc && \
+    echo 'complete -F _tmux_sessions tmux attach-session -t' >> /root/.bashrc && \
+    echo 'complete -F _tmux_sessions tmux switch-client -t' >> /root/.bashrc && \
+    echo 'complete -F _tmux_sessions tmux kill-session -t' >> /root/.bashrc
+
+# Install Ngrok to expose the FastAPI server to the internet
 RUN curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
     | tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
     && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \

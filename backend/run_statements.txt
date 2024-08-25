@@ -24,6 +24,10 @@ Its called user-defined bridge:
 docker network create insertnetworknamehere
 This allows you to ping containers by name
 
-To acces the container using tty:
+To access the container using tty:
 
 docker exec -it "container_name" /bin/bash
+
+In case of a port error "Address already in use" :
+run lsof (list open files) or use a different port:
+uvicorn main:app --reload --port 8001
