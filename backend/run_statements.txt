@@ -1,5 +1,5 @@
 Build the docker image while in the backend directory:
-Docker build -t backend . 
+docker build -t backend . 
 
 Hosting on local port 8000, the file main. It reloads for each change, this is a development way of running the code. In production you would leave --reload out. 
 uvicorn main:app --reload

@@ -1,10 +1,11 @@
-# uvicorn main:app  # uvicorn main:app --reload
-# main imports
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from decouple import config
 import openai
+
+# uvicorn main:app  # uvicorn main:app --reload
+# main imports
 
 # Initiate app
 app = FastAPI()
@@ -26,12 +27,11 @@ app = FastAPI()
 # )
 
 @app.get("/vader")
-async def root():
-    # This function handles GET requests to the root URL ("/")
+async def vader_endpoint():
+    # This function handles GET requests to the /vader endpoint
     return {"message": "Ga ervoor Pa, winnen met rummikub. Je kan het!"}
 
-@app.post("/moeder")
-async def root():
-    # This function handles POST requests to the root URL ("/")
+@app.get("/moeder")
+async def moeder_endpoint():
+    # This function handles POST requests to the /moeder endpoint
     return {"message": "Ga ervoor Ma. Laat pa niet winnen!"}
-

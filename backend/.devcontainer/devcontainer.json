@@ -3,13 +3,10 @@
 	"build": {
 		"context": "..",
 		"dockerfile": "../Dockerfile"
-	},
-	"forwardPorts": [
-		8000
-	]
+	}
 	//,
 	// "runArgs": [
-	// 	"--network",
-	// 	"host"
+	// 	"-p",
+	// 	"8000:8000"
 	// ]
 }
