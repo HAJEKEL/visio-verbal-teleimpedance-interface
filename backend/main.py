@@ -7,7 +7,7 @@ from decouple import config
 import openai
 
 # Custom function imports
-from functions.openai_requests import convert_audio_to_text
+from functions.openai_requests import convert_audio_to_text, get_gpt_response
 
 
 # Initiate app
@@ -36,7 +36,11 @@ async def check_health():
 @app.get("/get_audio")
 async def get_audio():
     # Get saved audio file
-    audio_file = open("voice.mp3", "rb")
+    audio_file = open("data/voice.mp3", "rb")
     decoded_audio = convert_audio_to_text(audio_file)
-    print("decoded_audio", decoded_audio)
+    # guard message decoded
+    if decoded_audio is None:
+        raise HTTPException(status_code=500, detail="Error decoding audio")
+    response = get_gpt_response(decoded_audio)
+    print(response)
     return "Done"
