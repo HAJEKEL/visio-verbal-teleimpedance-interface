@@ -5,9 +5,10 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from decouple import config
 import openai
-
 # Custom function imports
 from functions.openai_requests import convert_audio_to_text, get_gpt_response
+from functions.database import update_conversation_history
+
 
 
 # Initiate app
@@ -37,10 +38,11 @@ async def check_health():
 async def get_audio():
     # Get saved audio file
     audio_file = open("data/voice.mp3", "rb")
-    decoded_audio = convert_audio_to_text(audio_file)
+    transcription = convert_audio_to_text(audio_file)
     # guard message decoded
-    if decoded_audio is None:
+    if transcription is None:
         raise HTTPException(status_code=500, detail="Error decoding audio")
-    response = get_gpt_response(decoded_audio)
+    response = get_gpt_response(transcription)
+    update_conversation_history(transcription, response)
     print(response)
     return "Done"

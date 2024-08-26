@@ -1,7 +1,8 @@
 import json
+import os
 import random
 
-def get_conversation_history():
+def get_recent_conversation_history():
     # Define the file name and system instruction
     conversation_history = "data/conversation_history.json"
     system_role = {
@@ -17,15 +18,33 @@ def get_conversation_history():
 
     # Get conversation history
     try:
-        with open(conversation_history) as f:
-            data = json.load(f)
-        # Append last 10 items of data to messages
-        if data:
-            if len(data) < 10:
-                messages.extend(data)
-            else:
-                messages.extend(data[-10:])
+        if not os.path.exists(conversation_history):
+            raise FileNotFoundError(f"File {conversation_history} does not exist.")
+        
+        if os.path.getsize(conversation_history) == 0:
+            print("Conversation history file is empty.")
+        else:
+            with open(conversation_history) as f:
+                data = json.load(f)
+            # Append last 10 items of data to messages
+            if data:
+                if len(data) < 10:
+                    messages.extend(data)
+                else:
+                    messages.extend(data[-10:])    
     except Exception as e:
         print("Error reading conversation history", e)
-        pass
     return messages
+
+def update_conversation_history(transcription,response):
+    # Define the conversation history database
+    conversation_database = "data/conversation_history.json"
+    # Get the 10 last messages
+    recent_conversation_history = get_recent_conversation_history()[1:]
+    # Append the new message
+    transcription_dict = {"role": "user", "content": transcription}
+    response_dict = {"role": "system", "content": response}
+    recent_conversation_history.append(transcription_dict)
+    recent_conversation_history.append(response)
+    with open(conversation_database, 'w') as f:
+        json.dump(recent_conversation_history, f)

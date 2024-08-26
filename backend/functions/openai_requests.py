@@ -6,7 +6,7 @@ openai.organization = config("OPEN_AI_ORG")
 openai.api_key = config("OPEN_AI_KEY")
 
 # Import custom functions
-from .database import get_conversation_history
+from .database import get_recent_conversation_history
 
 # open ai whipser function
 # Convert audio to text
@@ -22,7 +22,7 @@ def convert_audio_to_text(audio_file):
 # OpenAI gpt-4 function
 # Generate text based on the prompt
 def get_gpt_response(transcript):
-    history = get_conversation_history()
+    history = get_recent_conversation_history()
     user_message = {"role": "user", "content": transcript}
     history.append(user_message)
     print(history)
