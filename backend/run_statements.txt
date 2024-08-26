@@ -31,3 +31,7 @@ docker exec -it "container_name" /bin/bash
 In case of a port error "Address already in use" :
 run lsof (list open files) or use a different port:
 uvicorn main:app --reload --port 8001
+
+working setup:
+uvicorn main:app --reload
+ngrok http 8000
