@@ -7,7 +7,7 @@ from decouple import config
 import openai
 # Custom function imports
 from functions.openai_requests import convert_audio_to_text, get_gpt_response
-from functions.database import update_conversation_history
+from functions.database import update_conversation_history, reset_conversation_history
 
 
 
@@ -34,6 +34,11 @@ app.add_middleware(
 async def check_health():
     return {"status": "ok"}
 
+@app.get("/reset")
+async def reset():
+    return reset_conversation_history()
+
+
 @app.get("/get_audio")
 async def get_audio():
     # Get saved audio file
@@ -44,5 +49,4 @@ async def get_audio():
         raise HTTPException(status_code=500, detail="Error decoding audio")
     response = get_gpt_response(transcription)
     update_conversation_history(transcription, response)
-    print(response)
     return "Done"

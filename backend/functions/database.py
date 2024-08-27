@@ -45,6 +45,14 @@ def update_conversation_history(transcription,response):
     transcription_dict = {"role": "user", "content": transcription}
     response_dict = {"role": "system", "content": response}
     recent_conversation_history.append(transcription_dict)
-    recent_conversation_history.append(response)
+    recent_conversation_history.append(response_dict)
+    print(recent_conversation_history)
     with open(conversation_database, 'w') as f:
         json.dump(recent_conversation_history, f)
+
+def reset_conversation_history():
+    # Define the conversation history database
+    conversation_database = "data/conversation_history.json"
+    # Reset the conversation history
+    open(conversation_database, 'w')
+    return "Conversation history has been reset."
