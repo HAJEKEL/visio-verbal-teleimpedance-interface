@@ -4,9 +4,9 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from decouple import config
-import openai
+
 # Custom function imports
-from functions.openai_requests import convert_audio_to_text, get_gpt_response
+from functions.openai_stt_response import convert_audio_to_text, get_gpt_response
 from functions.database import update_conversation_history, reset_conversation_history
 
 
@@ -29,6 +29,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
 
 @app.get("/health")
 async def check_health():

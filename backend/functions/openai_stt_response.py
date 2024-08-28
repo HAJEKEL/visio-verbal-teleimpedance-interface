@@ -1,5 +1,9 @@
-import openai
+from functions.openai_version import import_openai_version
 from decouple import config
+
+# Import the OpenAI module
+openai = import_openai_version("/app/openai_v0.27.0")    
+
 
 # retrieve the API key from the .env file
 openai.organization = config("OPEN_AI_ORG")

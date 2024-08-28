@@ -43,6 +43,12 @@ WORKDIR /app
 # Copy the requirements file into the container at /app
 COPY requirements.txt /app/
 
+# Install the specific version of openai for older functionalities (speech-to-text and response generation)
+RUN pip install openai==0.27.0 --target=/app/openai_v0.27.0
+
+# Install the latest version of openai for the latest features (text-to-speech)
+RUN pip install openai --target=/app/openai_latest
+
 # Install any needed packages specified in requirements.txt
 RUN pip3 install --no-cache-dir --upgrade pip && pip3 install --no-cache-dir -r requirements.txt
 
