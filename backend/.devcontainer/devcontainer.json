@@ -3,10 +3,10 @@
 	"build": {
 		"context": "..",
 		"dockerfile": "../Dockerfile"
-	}
-	//,
-	// "runArgs": [
-	// 	"-p",
-	// 	"8000:8000"
-	// ]
+	},
+	"runArgs": [
+		"--network=host",
+		"--ipc=host",
+		"--env=DISPLAY"
+	]
 }

@@ -35,3 +35,6 @@ uvicorn main:app --reload --port 8001
 working setup:
 uvicorn main:app --reload
 ngrok http 8000
+
+Host my app on my own ngrok domain:
+ngrok http --domain=summary-sunbird-dashing.ngrok-free.app 8000

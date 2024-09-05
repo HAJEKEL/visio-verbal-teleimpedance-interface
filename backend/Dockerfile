@@ -1,16 +1,43 @@
 # Use an official Python 3 runtime as a parent image
 FROM python:3.9
 
+# In dockerfiles we use apt-get to install packages instead of 
+# apt because apt-get is more low-level and suitable for scripting
+
 # Install ping, iproute2, and vim
-RUN apt-get update && apt-get install -y \
+# Always run apt-get update because docker will otherwise use a cached version of the package list which may be outdated                    
+# The -y flag is used to automatically answer yes to all prompts
+# The \ character is used to split the command into multiple lines for version control purposes
+# The rm -rf command is used to remove the package lists to reduce the image size and to force the Dockerfile author to use the apt-get update command to fetch the latest package lists at the start of the installation process
+RUN apt-get update && apt-get install -y \ 
     iputils-ping \
     iproute2 \
     vim \
     curl \
-    tmux
+    tmux \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the .tmux.conf file to the home directory of the container
 COPY .tmux.conf /root/.tmux.conf
+
+# Create a non-root user
+ARG USERNAME=henk_docker
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+RUN groupadd --gid $USER_GID $USERNAME \
+  && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
+  # Create a home directory and a config directory for the user as some programs expect these to exist
+  && mkdir /home/$USERNAME/.config && chown $USER_UID:$USER_GID /home/$USERNAME/.config 
+
+
+# Add the user to the sudo group and allow it to run sudo commands without a password 
+RUN apt-get update \
+&& apt-get install -y sudo \
+&& echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME\
+&& chmod 0440 /etc/sudoers.d/$USERNAME \
+&& rm -rf /var/lib/apt/lists/*
 
 # Append the specified lines to the end of the .bashrc file
 RUN echo '_tmux_sessions() {' >> /root/.bashrc && \
@@ -43,12 +70,6 @@ WORKDIR /app
 # Copy the requirements file into the container at /app
 COPY requirements.txt /app/
 
-# Install the specific version of openai for older functionalities (speech-to-text and response generation)
-RUN pip install openai==0.27.0 --target=/app/openai_v0.27.0
-
-# Install the latest version of openai for the latest features (text-to-speech)
-RUN pip install openai --target=/app/openai_latest
-
 # Install any needed packages specified in requirements.txt
 RUN pip3 install --no-cache-dir --upgrade pip && pip3 install --no-cache-dir -r requirements.txt
 
@@ -60,3 +81,18 @@ EXPOSE 8000
 
 # Run the application and save ngrok URL to a file
 # CMD ["sh", "-c", "ngrok http 8000 > ngrok_url.txt & uvicorn main:app --reload"]
+
+
+# Copy the entrypoint and bashrc scripts so we have 
+# our container's environment set up correctly
+COPY entrypoint.sh /entrypoint.sh
+
+
+
+# Set up entrypoint and default command
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
+CMD ["bash"]
+
+
+# Make the container run as the non-root user
+USER $USERNAME

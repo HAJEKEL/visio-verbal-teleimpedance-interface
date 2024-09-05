@@ -12,12 +12,18 @@ def import_openai_version(version_path):
         module: The imported OpenAI module.
     """
     # Add the path to sys.path
-    sys.path.insert(0, version_path)
+    if version_path not in sys.path:
+        sys.path.insert(0, version_path)
+    
+    # Remove the old openai module from sys.modules
+    if 'openai' in sys.modules:
+        del sys.modules['openai']
     
     # Import the openai module
     openai = importlib.import_module("openai")
     
     # Remove the path from sys.path to avoid conflicts later
-    sys.path.pop(0)
+    if version_path in sys.path:
+        sys.path.remove(version_path)
     
     return openai

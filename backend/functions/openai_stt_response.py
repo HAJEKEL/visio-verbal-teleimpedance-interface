@@ -1,8 +1,6 @@
 from functions.openai_version import import_openai_version
 from decouple import config
-
-# Import the OpenAI module
-openai = import_openai_version("/app/openai_v0.27.0")    
+from openai import OpenAI
 
 
 # retrieve the API key from the .env file
@@ -14,9 +12,9 @@ from .database import get_recent_conversation_history
 
 # open ai whipser function
 # Convert audio to text
-def convert_audio_to_text(audio_file):
+def speech_to_text(audio_file):
     try:
-        response = openai.Audio.transcribe("whisper-1", audio_file)
+        response = openai_old.Audio.transcribe("whisper-1", audio_file)
         transcript = response["text"]
         return transcript
     except Exception as e:
@@ -30,7 +28,7 @@ def get_gpt_response(transcript):
     user_message = {"role": "user", "content": transcript}
     history.append(user_message)
     try:
-        response = openai.ChatCompletion.create(
+        response = openai_old.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=history
         )
