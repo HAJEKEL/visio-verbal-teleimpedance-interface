@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     tmux \
     ffmpeg \
+    x11-apps \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the .tmux.conf file to the home directory of the container
