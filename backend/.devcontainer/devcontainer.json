@@ -5,8 +5,18 @@
 		"dockerfile": "../Dockerfile"
 	},
 	"runArgs": [
-		"--network=host",
-		"--ipc=host",
-		"--env=DISPLAY"
-	]
+		"--device",
+		"/dev/snd",
+		"-v",
+		"/etc/machine-id:/etc/machine-id",
+		"-v",
+		"/run/user/1000/pulse:/run/user/1000/pulse",
+		"--group-add",
+		"audio"
+	],
+	"containerEnv": {
+		"PULSE_SERVER": "unix:/run/user/1000/pulse/native"
+	},
+	"remoteUser": "henk",
+	"updateRemoteUserUID": true
 }

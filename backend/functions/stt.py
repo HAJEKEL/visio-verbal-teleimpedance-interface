@@ -1,27 +1,42 @@
-import torch
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+from decouple import config
+import wave
+import json
+from vosk import Model, KaldiRecognizer
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+# Import custom functions
+from .database import get_recent_conversation_history
 
-model_id = "distil-whisper/distil-large-v3"
+model = Model("../vosk-model-small-en-us-0.15")
 
-model = AutoModelForSpeechSeq2Seq.from_pretrained(
-    model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
-)
-model.to(device)
 
-processor = AutoProcessor.from_pretrained(model_id)
+# Convert audio to text using Vosk
+def speech_to_text(audio_file):
+    try:
+        wf = wave.open(audio_file, "rb")
+        if wf.getnchannels() != 1 or wf.getsampwidth() != 2 or wf.getcomptype() != "NONE":
+            raise ValueError("Audio file must be WAV format mono PCM.")
 
-pipe = pipeline(
-    "automatic-speech-recognition",
-    model=model,
-    tokenizer=processor.tokenizer,
-    feature_extractor=processor.feature_extractor,
-    max_new_tokens=128,
-    torch_dtype=torch_dtype,
-    device=device,
-)
+        rec = KaldiRecognizer(model, wf.getframerate())
+        rec.SetWords(True)
 
-result = pipe("data/voice.mp3")
-print(result["text"])
+        transcript = ""
+        while True:
+            data = wf.readframes(4000)
+            if len(data) == 0:
+                break
+            if rec.AcceptWaveform(data):
+                result = rec.Result()
+                transcript_data = json.loads(result)
+                transcript += transcript_data.get("text", "")
+        
+        # Get any remaining partial result
+        partial_result = rec.FinalResult()
+        transcript_data = json.loads(partial_result)
+        transcript += transcript_data.get("text", "")
+        
+        return transcript
+
+    except Exception as e:
+        print(e)
+        return None
+

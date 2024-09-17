@@ -38,3 +38,11 @@ ngrok http 8000
 
 Host my app on my own ngrok domain:
 ngrok http --domain=summary-sunbird-dashing.ngrok-free.app 8000
+
+
+#Getting audio devices from host
+#check if pulseaudio server is running on host
+ps aux | grep pulseaudio
+
+add pulseaudio --start to .bashrc for running on boot
+

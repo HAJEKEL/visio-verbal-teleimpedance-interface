@@ -4,26 +4,46 @@ FROM python:3.9
 # In dockerfiles we use apt-get to install packages instead of 
 # apt because apt-get is more low-level and suitable for scripting
 
-# Install ping, iproute2, and vim
+
+
 # Always run apt-get update because docker will otherwise use a cached version of the package list which may be outdated                    
 # The -y flag is used to automatically answer yes to all prompts
 # The \ character is used to split the command into multiple lines for version control purposes
 # The rm -rf command is used to remove the package lists to reduce the image size and to force the Dockerfile author to use the apt-get update command to fetch the latest package lists at the start of the installation process
+
+# General packages for debugging and development:
 RUN apt-get update && apt-get install -y \ 
-    iputils-ping \
-    iproute2 \
     vim \
     curl \
     tmux \
-    ffmpeg \
-    x11-apps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Packages for networking and debugging:
+RUN apt-get update && apt-get install -y \ 
+    iputils-ping \
+    iproute2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Packages for video streaming from container to host
+RUN apt-get update && apt-get install -y \ 
+    x11-apps \ 
+    && rm -rf /var/lib/apt/lists/*
+
+# Packages for debugging and development:
+RUN apt-get update && apt-get install -y \
+    ffmpeg \ 
+    && rm -rf /var/lib/apt/lists/*
+
+# Packages for audio device host
+RUN apt-get update && apt-get install -y \
+    pulseaudio \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the .tmux.conf file to the home directory of the container
 COPY .tmux.conf /root/.tmux.conf
 
 # Create a non-root user
-ARG USERNAME=henk_docker
+ARG USERNAME=henk
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
@@ -39,6 +59,10 @@ RUN apt-get update \
 && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME\
 && chmod 0440 /etc/sudoers.d/$USERNAME \
 && rm -rf /var/lib/apt/lists/*
+
+# Create the PulseAudio configuration directory for the user
+RUN mkdir -p /home/$USERNAME/.config/pulse \
+    && chown -R $USERNAME:$USERNAME /home/$USERNAME/.config/pulse
 
 # Append the specified lines to the end of the .bashrc file
 RUN echo '_tmux_sessions() {' >> /root/.bashrc && \
