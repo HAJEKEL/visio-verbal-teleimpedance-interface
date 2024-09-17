@@ -1,15 +1,11 @@
-from functions.openai_version import import_openai_version
+from openai import OpenAI
 from decouple import config
 from pathlib import Path
 
-
-# Load the latest version of the OpenAI package
-openai_latest = import_openai_version('/app/openai_latest')
 # retrieve the API key from the .env file
 organization = config("OPEN_AI_ORG")
 api_key = config("OPEN_AI_KEY")
-print("openai latest", openai_latest)
-#client = openai_latest.OpenAI(api_key=api_key, organization=organization)
+client = OpenAI(api_key=api_key, organization=organization)
 
 # OpenAI gpt-4 function
 # Generate text based on the prompt

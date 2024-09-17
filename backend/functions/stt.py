@@ -1,12 +1,14 @@
 from decouple import config
 import wave
 import json
+import os
 from vosk import Model, KaldiRecognizer
 
 # Import custom functions
 from .database import get_recent_conversation_history
 
-model = Model("../vosk-model-small-en-us-0.15")
+model_path = os.path.join(os.path.dirname(__file__),"..","vosk-model-small-en-us-0.15")
+model = Model(model_path)
 
 
 # Convert audio to text using Vosk

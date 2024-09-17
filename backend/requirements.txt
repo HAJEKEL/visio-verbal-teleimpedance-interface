@@ -45,3 +45,5 @@ tobiiglassesctrl            # Control and data retrieval for Tobii Pro Glasses
 # Speech to text
 vosk==0.3.45  
 
+# Text to speech and response generation
+openai

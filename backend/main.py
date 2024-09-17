@@ -6,8 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from decouple import config
 
 # Custom function imports
-from functions.openai_stt_response import speech_to_text, get_gpt_response
-from functions.openai_tts import text_to_speech
+from functions.stt import speech_to_text
+from functions.openai_response_tts import get_gpt_response, text_to_speech
 from functions.database import update_conversation_history, reset_conversation_history
 
 
