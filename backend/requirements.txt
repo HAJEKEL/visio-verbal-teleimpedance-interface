@@ -45,5 +45,8 @@ tobiiglassesctrl            # Control and data retrieval for Tobii Pro Glasses
 # Speech to text
 vosk==0.3.45  
 
+# extract audio from youtube
+yt-dlp
+
 # Text to speech and response generation
 openai

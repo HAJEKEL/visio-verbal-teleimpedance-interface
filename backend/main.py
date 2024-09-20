@@ -49,6 +49,7 @@ async def get_audio():
     # Get saved audio file
     audio_file = open("data/voice.mp3", "rb")
     transcription = speech_to_text(audio_file)
+    print(transcription)
     # guard message decoded
     if transcription is None:
         raise HTTPException(status_code=500, detail="Error decoding audio")

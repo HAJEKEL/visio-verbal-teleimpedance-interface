@@ -46,3 +46,7 @@ ps aux | grep pulseaudio
 
 add pulseaudio --start to .bashrc for running on boot
 
+get audio from youtube:
+yt-dlp --extract-audio --audio-format mp3 --output "audio.%(ext)s" "https://www.youtube.com/shorts/RYM4fv0Phx8"
+play audio:
+ffmpeg -i audio.mp3 -f pulse "default"
