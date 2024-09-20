@@ -46,7 +46,6 @@ def update_conversation_history(transcription,response):
     response_dict = {"role": "system", "content": response}
     recent_conversation_history.append(transcription_dict)
     recent_conversation_history.append(response_dict)
-    print(recent_conversation_history)
     with open(conversation_database, 'w') as f:
         json.dump(recent_conversation_history, f)
 

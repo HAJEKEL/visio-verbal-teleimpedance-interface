@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from decouple import config
 
 # Custom function imports
-from functions.stt import speech_to_text
+from functions.vosk_stt import speech_to_text
 from functions.openai_response_tts import get_gpt_response, text_to_speech
 from functions.database import update_conversation_history, reset_conversation_history
 
@@ -47,17 +47,18 @@ async def reset():
 @app.get("/get_audio")
 async def get_audio():
     # Get saved audio file
-    audio_file = open("data/voice.mp3", "rb")
+    audio_file = "data/voice.wav"
     transcription = speech_to_text(audio_file)
     print(transcription)
     # guard message decoded
     if transcription is None:
         raise HTTPException(status_code=500, detail="Error decoding audio")
     response = get_gpt_response(transcription)
+    print(response)
     if response is None:
         raise HTTPException(status_code=500, detail="Error fetching gpt response")
     update_conversation_history(transcription, response)
-    audio = text_to_speech(response)
-    if audio is None:
-        raise HTTPException(status_code=500, detail="Error generating audio response")
-    return "Done"
+    text_to_speech(response)
+    # if audio is None:
+    #     raise HTTPException(status_code=500, detail="Error generating audio response")
+    # return "Done"
