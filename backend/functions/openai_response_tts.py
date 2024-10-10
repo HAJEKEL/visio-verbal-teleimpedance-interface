@@ -22,7 +22,7 @@ def get_gpt_response(transcript):
         # Create a stream using the OpenAI API
         stream = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[user_message],
+            messages=history,
             stream=True,
         )
         response_text = ""  # Initialize an empty string to accumulate the response
