@@ -66,7 +66,7 @@ async def get_audio():
 from fastapi import UploadFile, File, HTTPException
 import os
 
-@app.post("/post_audio/")
+@app.post("/post_audio")
 async def post_audio(file: UploadFile = File(...)):
     try:
         # Define a path to save the uploaded audio file

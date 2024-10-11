@@ -1,2 +1,5 @@
 Build the docker image while in the frontend directory:
 Docker build -t frontend . 
+
+yarn start
+This will change the port from 4173 to 5173
