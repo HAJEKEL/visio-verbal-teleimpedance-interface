@@ -1,20 +1,18 @@
-# Use an official Node.js runtime as a parent image, which includes npm
-FROM node:18
+# Use an official Node.js 18.7.0 runtime as a parent image
+FROM node:18.7.0
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the existing package.json file into the container
-COPY package.json ./
+# Remove the pre-installed Yarn version
+RUN npm uninstall -g yarn
 
-# Install dependencies
-RUN yarn install
+# Install the specified version of Yarn (1.22.19)
+RUN npm install -g yarn@1.22.19 --force
 
-# Copy the rest of the application code into the container
-COPY . .
+# Install the specified version of ts-node (10.9.1)
+RUN npm install -g ts-node@10.9.1
 
-# Expose the application port
+# Expose the application port (optional, depending on your app)
 EXPOSE 3000
-
-# Start the development server
-CMD ["yarn", "dev"]
+EXPOSE 5173

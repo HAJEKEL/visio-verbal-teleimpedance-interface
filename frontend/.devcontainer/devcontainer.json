@@ -1,0 +1,14 @@
+{
+	"name": "Node.js Development Container",
+	"build": {
+		"dockerfile": "../Dockerfile"
+	},
+	"runArgs": [
+		"--network",
+		"host"
+	],
+	"mounts": [
+		"source=${localWorkspaceFolder},target=/app,type=bind"
+	],
+	"remoteUser": "node"
+}
