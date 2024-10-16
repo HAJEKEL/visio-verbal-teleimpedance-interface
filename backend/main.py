@@ -1,4 +1,9 @@
 # uvicorn main:app  # uvicorn main:app --reload
+# audio format: wav
+import ffmpeg
+# 
+import os
+
 # main imports
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
@@ -20,7 +25,10 @@ origins = [
     "http://localhost:5174", # React dev server second
     "http://localhost:4173", # React deploy server
     "http://localhost:4174", # React deploy server second
-    "http://localhost:3000"] # General frontend application server
+    "http://localhost:3000",
+    "http://127.0.0.1:5174", # Add 127.0.0.1 for browser's localhost interpretation
+    "http://127.0.0.1:5173"  # Add 127.0.0.1 as another dev server
+    ] # General frontend application server
 
 # Add CORS middleware to the app
 app.add_middleware(
@@ -63,10 +71,8 @@ async def get_audio():
     #     raise HTTPException(status_code=500, detail="Error generating audio response")
     # return "Done"
 
-from fastapi import UploadFile, File, HTTPException
-import os
 
-@app.post("/post_audio")
+@app.post("/post_audio_docs")
 async def post_audio(file: UploadFile = File(...)):
     try:
         # Define a path to save the uploaded audio file
@@ -101,7 +107,55 @@ async def post_audio(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+    # finally:
+    #     # Clean up by removing the saved file after processing
+    #     if os.path.exists(file_path):
+    #         os.remove(file_path)
+
+@app.post("/post_audio")
+async def post_audio(file: UploadFile = File(...)):
+    try:
+        # Define a path to save the uploaded audio file
+        original_file_path = f"data/{file.filename}"
+        converted_file_path = f"data/converted_{file.filename}"
+
+        # Save the uploaded file to disk
+        with open(original_file_path, "wb") as buffer:
+            buffer.write(await file.read())
+
+        # Use ffmpeg to convert the audio to the required format
+        ffmpeg.input(original_file_path).output(
+            converted_file_path, ac=1, ar=16000
+        ).run()
+
+        # Pass the converted file to the speech_to_text function
+        transcription = speech_to_text(converted_file_path)
+        print(transcription)
+
+        # Guard clause for message decoding
+        if transcription is None:
+            raise HTTPException(status_code=500, detail="Error decoding audio")
+
+        # Get GPT response
+        response = get_gpt_response(transcription)
+        print(response)
+
+        # Guard clause for GPT response
+        if response is None:
+            raise HTTPException(status_code=500, detail="Error fetching GPT response")
+
+        # Update conversation history and generate voice response
+        update_conversation_history(transcription, response)
+        text_to_speech(response)
+
+        return {"message": "Audio processed successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
     finally:
-        # Clean up by removing the saved file after processing
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        # Clean up: remove the saved files
+        if os.path.exists(original_file_path):
+            os.remove(original_file_path)
+        if os.path.exists(converted_file_path):
+            os.remove(converted_file_path)

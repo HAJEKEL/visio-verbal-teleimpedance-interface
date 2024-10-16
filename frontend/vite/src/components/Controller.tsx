@@ -13,6 +13,13 @@ const Controller = () => {
     return url;
   }
 
+  const audioConstraints = {
+    audio: {
+      channelCount: 1,    // Mono (1 channel, equivalent to "-ac 1")
+      sampleRate: 16000,  // 16kHz sample rate (equivalent to "-ar 16000")
+    },
+  };
+
   const handleStop = async (blobUrl: string) => {
     setIsLoading(true);
 
@@ -20,7 +27,7 @@ const Controller = () => {
     const myMessage = { sender: "me", blobUrl };
     const messagesArr = [...messages, myMessage];
 
-    // convert blob url to blob object
+    // Convert blob URL to blob object
     fetch(blobUrl)
       .then((res) => res.blob())
       .then(async (blob) => {
@@ -28,12 +35,9 @@ const Controller = () => {
         const formData = new FormData();
         formData.append("file", blob, "myFile.wav");
 
-        // send form data to api endpoint
+        // Send form data to API endpoint
         await axios
           .post("http://localhost:8000/post_audio", formData, {
-            headers: {
-              "Content-Type": "audio/mpeg",
-            },
             responseType: "arraybuffer", // Set the response type to handle binary data
           })
           .then((res: any) => {
