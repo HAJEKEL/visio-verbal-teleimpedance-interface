@@ -14,7 +14,7 @@ from decouple import config
 from functions.vosk_stt import speech_to_text
 from functions.openai_response_tts import get_gpt_response, text_to_speech
 from functions.database import update_conversation_history, reset_conversation_history
-
+from functions.tts_play_directly import text_to_speech_play_directly
 
 
 # Initiate app
@@ -66,51 +66,11 @@ async def get_audio():
     if response is None:
         raise HTTPException(status_code=500, detail="Error fetching gpt response")
     update_conversation_history(transcription, response)
-    text_to_speech(response)
+    text_to_speech_play_directly(response)
     # if audio is None:
     #     raise HTTPException(status_code=500, detail="Error generating audio response")
     # return "Done"
 
-
-@app.post("/post_audio_docs")
-async def post_audio(file: UploadFile = File(...)):
-    try:
-        # Define a path to save the uploaded audio file
-        file_path = f"data/{file.filename}"
-
-        # Save the uploaded file to disk
-        with open(file_path, "wb") as buffer:
-            buffer.write(await file.read())
-
-        # Pass the file path to the speech_to_text function
-        transcription = speech_to_text(file_path)
-        print(transcription)
-
-        # Guard clause for message decoding
-        if transcription is None:
-            raise HTTPException(status_code=500, detail="Error decoding audio")
-
-        # Get GPT response
-        response = get_gpt_response(transcription)
-        print(response)
-
-        # Guard clause for GPT response
-        if response is None:
-            raise HTTPException(status_code=500, detail="Error fetching GPT response")
-
-        # Update conversation history and generate voice response
-        update_conversation_history(transcription, response)
-        text_to_speech(response)
-
-        return {"message": "Audio processed successfully"}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-    # finally:
-    #     # Clean up by removing the saved file after processing
-    #     if os.path.exists(file_path):
-    #         os.remove(file_path)
 
 @app.post("/post_audio")
 async def post_audio(file: UploadFile = File(...)):

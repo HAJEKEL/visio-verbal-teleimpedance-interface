@@ -47,7 +47,8 @@ def text_to_speech(response_text):
             voice="alloy",
             input=response_text,
         )
-        path = "output.mp3"
+        path = os.path.join(os.path.dirname(__file__), '..', 'audio_outputs', 'output.mp3')
+        
         # Save the generated speech to an MP3 file
         response.stream_to_file(path)
         return path
