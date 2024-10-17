@@ -146,14 +146,28 @@ async def post_audio(file: UploadFile = File(...)):
 
         # Update conversation history and generate voice response
         update_conversation_history(transcription, response)
-        text_to_speech(response)
+        # Generate the audio from text
+        audio_file_path = text_to_speech(response)
 
-        return {"message": "Audio processed successfully"}
+        # Guard: Ensure output
+        if not audio_file_path or not os.path.exists(audio_file_path):
+            raise HTTPException(status_code=400, detail="Failed to generate audio")
+
+        # Create a generator that yields the audio file chunks
+        def iterfile():
+            with open(audio_file_path, mode="rb") as file_like:
+                yield from file_like
+
+        # Return the audio file as a stream
+        return StreamingResponse(iterfile(), media_type="audio/mpeg")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
+        # Clean up: remove the saved file
+        # if os.path.exists(audio_file_path):
+        #     os.remove(audio_file_path)
         # Clean up: remove the saved files
         if os.path.exists(original_file_path):
             os.remove(original_file_path)

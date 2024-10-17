@@ -47,15 +47,11 @@ def text_to_speech(response_text):
             voice="alloy",
             input=response_text,
         )
-
+        path = "output.mp3"
         # Save the generated speech to an MP3 file
-        response.stream_to_file("output.mp3")
-        print("Audio saved as output.mp3")
-
-        # Play the MP3 file using ffplay (more reliable for audio playback)
-        play_command = ["ffplay", "-autoexit", "-nodisp", "output.mp3"]
-        subprocess.run(play_command)
-        print("Playing audio...")
+        response.stream_to_file(path)
+        return path
 
     except Exception as e:
-        print(f"Error generating or playing speech: {e}")
+        print(f"Error generating speech: {e}")
+        return None
