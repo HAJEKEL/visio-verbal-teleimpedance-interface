@@ -10,5 +10,6 @@
 	"mounts": [
 		"source=${localWorkspaceFolder},target=/app,type=bind"
 	],
-	"remoteUser": "node"
+	"remoteUser": "node",
+	"postStartCommand": "ngrok config add-authtoken $(grep NGROK_AUTH_TOKEN /app/.env | cut -d '=' -f2)"
 }

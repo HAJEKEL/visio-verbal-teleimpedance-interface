@@ -16,6 +16,11 @@ from functions.openai_response_tts import get_gpt_response, text_to_speech
 from functions.database import update_conversation_history, reset_conversation_history
 from functions.tts_play_directly import text_to_speech_play_directly
 
+# Make a static folder to send images to openai
+from fastapi.staticfiles import StaticFiles
+# For unique file names
+from uuid import uuid4
+
 
 # Initiate app
 app = FastAPI()
@@ -27,7 +32,8 @@ origins = [
     "http://localhost:4174", # React deploy server second
     "http://localhost:3000",
     "http://127.0.0.1:5174", # Add 127.0.0.1 for browser's localhost interpretation
-    "http://127.0.0.1:5173"  # Add 127.0.0.1 as another dev server
+    "http://127.0.0.1:5173",  # Add 127.0.0.1 as another dev server
+    "https://summary-sunbird-dashing.ngrok-free.app"
     ] # General frontend application server
 
 # Add CORS middleware to the app
@@ -38,6 +44,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve static files from the "static" folder
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 @app.get("/")
 async def root():
@@ -50,7 +60,6 @@ async def check_health():
 @app.get("/reset")
 async def reset():
     return reset_conversation_history()
-
 
 @app.get("/get_audio")
 async def get_audio():
@@ -133,3 +142,46 @@ async def post_audio(file: UploadFile = File(...)):
             os.remove(original_file_path)
         if os.path.exists(converted_file_path):
             os.remove(converted_file_path)
+
+@app.post("/capture_data")
+async def capture_data(image_url: str):
+    try:
+        # Capture audio transcription
+        original_file_path = f"data/{file.filename}"
+        converted_file_path = f"data/converted_{file.filename}"
+        with open(original_file_path, "wb") as buffer:
+            buffer.write(await file.read())
+        ffmpeg.input(original_file_path).output(converted_file_path, ac=1, ar=16000).run()
+        transcription = speech_to_text(converted_file_path)
+        # Send both transcription and image to OpenAI API
+        response = vlm(transcription, image_url)
+
+        return {"openai_response": response}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/upload_image/")
+async def upload_image(file: UploadFile = File(...)):
+    try:
+        # Generate a unique filename
+        file_extension = file.filename.split(".")[-1]
+        unique_filename = f"{uuid4()}.{file_extension}"
+        file_path = f"static/images/{unique_filename}"
+
+        # Save the file to the static/images folder
+        with open(file_path, "wb") as buffer:
+            buffer.write(await file.read())
+
+        # Generate the file URL using your ngrok domain
+        file_url = f"https://summary-sunbird-dashing.ngrok-free.app/static/images/{unique_filename}"
+
+        # Call /capture_data endpoint with the image URL
+        response = requests.post("http://localhost:8000/capture_data/", json={"image_url": file_url})
+
+        # Return the OpenAI response
+        return JSONResponse(content=response.json())
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

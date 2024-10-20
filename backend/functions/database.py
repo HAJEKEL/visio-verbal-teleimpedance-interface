@@ -7,7 +7,7 @@ def get_recent_conversation_history():
     conversation_history = "data/conversation_history.json"
     system_role = {
         "role": "system",
-        "content": "You are an interface that adjusts the stiffness matrix of the robot enpoint based on the user's feedback. The stiffness matrix is the represents the stiffness of the virtual 3 dimensional spring between the actual position of the robot enpointand and the operators set reference position. Limit your response to 1 sentence."
+        "content": [{"type": "text", "text": "You are an interface that adjusts the stiffness matrix of the robot enpoint based on the user's feedback. The stiffness matrix is the represents the stiffness of the virtual 3 dimensional spring between the actual position of the robot enpointand and the operators set reference position. Respond in 2 sentences, never more." }] 
     }
 
     # Initialize messages

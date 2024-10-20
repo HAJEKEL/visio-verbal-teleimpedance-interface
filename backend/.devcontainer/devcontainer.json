@@ -18,5 +18,6 @@
 		"PULSE_SERVER": "unix:/run/user/1000/pulse/native"
 	},
 	"remoteUser": "henk",
-	"updateRemoteUserUID": true
+	"updateRemoteUserUID": true,
+	"postStartCommand": "ngrok config add-authtoken $(grep NGROK_AUTH_TOKEN /app/.env | cut -d '=' -f2)"
 }

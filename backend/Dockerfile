@@ -84,7 +84,7 @@ RUN curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
     && apt-get install -y ngrok
 
 # Copy the .env file into the container
-COPY functions/.env /app/
+COPY functions/.env /app/.env
 
 # Set up Ngrok authtoken using an environment variable from .env file
 RUN export $(cat /app/.env | xargs) && ngrok config add-authtoken ${NGROK_AUTH_TOKEN}
