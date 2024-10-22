@@ -26,8 +26,8 @@ const Controller = () => {
           "http://localhost:8000/upload_image",
           formData
         );
-        const imageURL = response.data.image_url; // Get image URL from response
-
+        const imageURL = response.data; // Correct access since backend returns plain string
+        console.log(imageURL)
         setImageURL(imageURL); // Store the image URL in state
         alert("Image uploaded successfully!");
 
@@ -40,21 +40,21 @@ const Controller = () => {
 
   const handleStop = async (blobUrl: string) => {
     setIsLoading(true);
-
+  
     const myMessage = { sender: "me", blobUrl };
     const messagesArr = [...messages, myMessage];
-
+  
     fetch(blobUrl)
       .then((res) => res.blob())
       .then(async (blob) => {
         const formData = new FormData();
         formData.append("file", blob, "myFile.wav");
-
-        // If an image URL exists, include it in the form data
+  
+        // If an image URL exists, include it as a separate field
         if (imageURL) {
-          formData.append("image_url", imageURL);
+          formData.append("image_url", imageURL);  // Ensure the image URL is included correctly
         }
-
+  
         await axios
           .post("http://localhost:8000/post_audio", formData, {
             responseType: "arraybuffer",
@@ -63,11 +63,11 @@ const Controller = () => {
             const blob = res.data;
             const audio = new Audio();
             audio.src = createBlobURL(blob);
-
+  
             const rachelMessage = { sender: "rachel", blobUrl: audio.src };
             messagesArr.push(rachelMessage);
             setMessages(messagesArr);
-
+  
             setIsLoading(false);
             audio.play();
           })
@@ -77,7 +77,7 @@ const Controller = () => {
           });
       });
   };
-
+  
   return (
     <div className="h-screen overflow-y-hidden">
       {/* Title */}
