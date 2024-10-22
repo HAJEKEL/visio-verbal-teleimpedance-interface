@@ -14,6 +14,12 @@ const Controller = () => {
     return url;
   }
 
+  const audioConstraints = {
+    audio: {
+      channelCount: 1,    // Mono (1 channel, equivalent to "-ac 1")
+      sampleRate: 16000,  // 16kHz sample rate (equivalent to "-ar 16000")
+    },};
+
   const handleImageUpload = async (event: any) => {
     const file = event.target.files[0];
     if (file) {
