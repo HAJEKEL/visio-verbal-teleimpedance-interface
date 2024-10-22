@@ -15,11 +15,13 @@ from functions.vosk_stt import speech_to_text
 from functions.openai_response_tts import get_gpt_response, text_to_speech
 from functions.database import update_conversation_history, reset_conversation_history
 from functions.tts_play_directly import text_to_speech_play_directly
-
+from functions.openai_vlm import get_gpt_response_vlm
+from functions.database import update_conversation_history_vlm
 # Make a static folder to send images to openai
 from fastapi.staticfiles import StaticFiles
 # For unique file names
 from uuid import uuid4
+
 
 
 # Initiate app
@@ -153,10 +155,35 @@ async def capture_data(image_url: str):
             buffer.write(await file.read())
         ffmpeg.input(original_file_path).output(converted_file_path, ac=1, ar=16000).run()
         transcription = speech_to_text(converted_file_path)
-        # Send both transcription and image to OpenAI API
-        response = vlm(transcription, image_url)
+        print(transcription)
 
-        return {"openai_response": response}
+        # Guard clause for message decoding
+        if transcription is None:
+            raise HTTPException(status_code=500, detail="Error decoding audio")
+
+        # Send both transcription and image to OpenAI API
+        response = get_gpt_response_vlm(transcription, image_url)
+        print(response)
+                # Guard clause for GPT response
+        if response is None:
+            raise HTTPException(status_code=500, detail="Error fetching GPT response")
+
+        # Update conversation history and generate voice response
+        update_conversation_history_vlm(transcription, image_url, response)
+        # Generate the audio from text
+        audio_file_path = text_to_speech(response)
+
+        # Guard: Ensure output
+        if not audio_file_path or not os.path.exists(audio_file_path):
+            raise HTTPException(status_code=400, detail="Failed to generate audio")
+
+        # Create a generator that yields the audio file chunks
+        def iterfile():
+            with open(audio_file_path, mode="rb") as file_like:
+                yield from file_like
+
+        # Return the audio file as a stream
+        return StreamingResponse(iterfile(), media_type="audio/mpeg")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -165,6 +192,8 @@ async def capture_data(image_url: str):
 @app.post("/upload_image/")
 async def upload_image(file: UploadFile = File(...)):
     try:
+        if not os.path.exists("static/images"):
+            os.makedirs("static/images")
         # Generate a unique filename
         file_extension = file.filename.split(".")[-1]
         unique_filename = f"{uuid4()}.{file_extension}"
@@ -178,10 +207,37 @@ async def upload_image(file: UploadFile = File(...)):
         file_url = f"https://summary-sunbird-dashing.ngrok-free.app/static/images/{unique_filename}"
 
         # Call /capture_data endpoint with the image URL
-        response = requests.post("http://localhost:8000/capture_data/", json={"image_url": file_url})
+        # response = requests.post("http://localhost:8000/capture_data/", json={"image_url": file_url})
 
-        # Return the OpenAI response
-        return JSONResponse(content=response.json())
+        return file_url
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# @app.post("/upload_image/")
+# async def upload_image(file: UploadFile = File(...)):
+#     try:
+#         if not os.path.exists("static/images"):
+#              os.makedirs("static/images")
+
+#         # Generate a unique filename
+#         file_extension = file.filename.split(".")[-1]
+#         unique_filename = f"{uuid4()}.{file_extension}"
+#         file_path = f"static/images/{unique_filename}"
+
+#         # Save the file to the static/images folder
+#         with open(file_path, "wb") as buffer:
+#             buffer.write(await file.read())
+
+#         # Generate the file URL using your ngrok domain
+#         file_url = f"https://summary-sunbird-dashing.ngrok-free.app/static/images/{unique_filename}"
+
+#         async with httpx.AsyncClient() as client:
+#             response = await client.post("http://localhost:8000/capture_data/", json={"image_url": file_url})
+
+#         # Return the OpenAI response
+#         return JSONResponse(content=response.json())
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))

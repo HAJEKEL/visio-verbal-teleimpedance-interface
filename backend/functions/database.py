@@ -42,9 +42,22 @@ def update_conversation_history(transcription,response):
     # Get the 10 last messages
     recent_conversation_history = get_recent_conversation_history()[1:]
     # Append the new message
-    transcription_dict = {"role": "user", "content": transcription}
+    transcription_dict = {"role": "user", "content": [{"type": "text", "text": transcription}]}
     response_dict = {"role": "system", "content": response}
     recent_conversation_history.append(transcription_dict)
+    recent_conversation_history.append(response_dict)
+    with open(conversation_database, 'w') as f:
+        json.dump(recent_conversation_history, f)
+
+def update_conversation_history_vlm(transcription,image_url,response):
+    # Define the conversation history database
+    conversation_database = "data/conversation_history.json"
+    # Get the 10 last messages
+    recent_conversation_history = get_recent_conversation_history()[1:]
+    # Append the new message
+    transcription_image_dict = {"role": "user", "content": [{"type": "text", "text": transcription },{"type": "image_url", "url": image_url}]}
+    response_dict = {"role": "system", "content": response}
+    recent_conversation_history.append(transcription_image_dict)
     recent_conversation_history.append(response_dict)
     with open(conversation_database, 'w') as f:
         json.dump(recent_conversation_history, f)

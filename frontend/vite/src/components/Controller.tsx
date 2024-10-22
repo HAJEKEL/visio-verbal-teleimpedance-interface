@@ -6,6 +6,7 @@ import RecordMessage from "./RecordMessage";
 const Controller = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
+  const [imageURL, setImageURL] = useState<string | null>(null); // State for image URL
 
   function createBlobURL(data: any) {
     const blob = new Blob([data], { type: "audio/mpeg" });
@@ -13,44 +14,60 @@ const Controller = () => {
     return url;
   }
 
-  const audioConstraints = {
-    audio: {
-      channelCount: 1,    // Mono (1 channel, equivalent to "-ac 1")
-      sampleRate: 16000,  // 16kHz sample rate (equivalent to "-ar 16000")
-    },
+  const handleImageUpload = async (event: any) => {
+    const file = event.target.files[0];
+    if (file) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        // Upload the image to the backend
+        const response = await axios.post(
+          "http://localhost:8000/upload_image",
+          formData
+        );
+        const imageURL = response.data.image_url; // Get image URL from response
+
+        setImageURL(imageURL); // Store the image URL in state
+        alert("Image uploaded successfully!");
+
+      } catch (err) {
+        console.error("Error uploading image:", err);
+        alert("Error uploading image. Please try again.");
+      }
+    }
   };
 
   const handleStop = async (blobUrl: string) => {
     setIsLoading(true);
 
-    // Append recorded message to messages
     const myMessage = { sender: "me", blobUrl };
     const messagesArr = [...messages, myMessage];
 
-    // Convert blob URL to blob object
     fetch(blobUrl)
       .then((res) => res.blob())
       .then(async (blob) => {
-        // Construct audio to send file
         const formData = new FormData();
         formData.append("file", blob, "myFile.wav");
 
-        // Send form data to API endpoint
+        // If an image URL exists, include it in the form data
+        if (imageURL) {
+          formData.append("image_url", imageURL);
+        }
+
         await axios
           .post("http://localhost:8000/post_audio", formData, {
-            responseType: "arraybuffer", // Set the response type to handle binary data
+            responseType: "arraybuffer",
           })
           .then((res: any) => {
             const blob = res.data;
             const audio = new Audio();
             audio.src = createBlobURL(blob);
 
-            // Append to audio
             const rachelMessage = { sender: "rachel", blobUrl: audio.src };
             messagesArr.push(rachelMessage);
             setMessages(messagesArr);
 
-            // Play audio
             setIsLoading(false);
             audio.play();
           })
@@ -118,6 +135,15 @@ const Controller = () => {
         <div className="fixed bottom-0 w-full py-6 border-t text-center bg-gradient-to-r from-sky-500 to-green-500">
           <div className="flex justify-center items-center w-full">
             <div>
+              {/* Optional Image Upload Button */}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="mb-4"
+              />
+
+              {/* Record Button (Always Enabled) */}
               <RecordMessage handleStop={handleStop} />
             </div>
           </div>
