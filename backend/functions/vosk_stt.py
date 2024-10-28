@@ -1,4 +1,6 @@
 from vosk import Model, KaldiRecognizer
+from vosk import SetLogLevel
+SetLogLevel(-1)
 import json
 import os
 

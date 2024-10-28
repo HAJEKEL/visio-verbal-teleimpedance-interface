@@ -60,7 +60,9 @@ const Controller = () => {
         if (imageURL) {
           formData.append("image_url", imageURL);  // Ensure the image URL is included correctly
         }
-  
+        
+        console.log('Image URL being sent:', formData.get('image_url'));
+
         await axios
           .post("http://localhost:8000/post_audio", formData, {
             responseType: "arraybuffer",

@@ -7,7 +7,7 @@ def get_recent_conversation_history():
     conversation_history = "data/conversation_history.json"
     system_role = {
         "role": "system",
-        "content": [{"type": "text", "text": "You are an interface that adjusts the stiffness matrix of the robot enpoint based on the user's feedback. The stiffness matrix is the represents the stiffness of the virtual 3 dimensional spring between the actual position of the robot enpointand and the operators set reference position. Respond in 2 sentences, never more." }] 
+        "content": [{"type": "text", "text": "You are a responsive interface designed to adjust the stiffness matrix of a robot endpoint according to user feedback. The stiffness matrix defines a virtual 3D spring between the robot's actual endpoint position and the user's target position, guiding the robot's response. You may receive either just the transcript of the user's voice input or both a transcript and an image URL representing the current scene. You can process both text and image data, so use visual context when available. Conversation history is maintained in this interface, recording all user inputs and your responses. Use this context to provide responses that are informed by previous interactions."}] 
     }
 
     # Initialize messages
@@ -55,8 +55,14 @@ def update_conversation_history_vlm(transcription,image_url,response):
     # Get the 10 last messages
     recent_conversation_history = get_recent_conversation_history()[1:]
     # Append the new message
-    transcription_image_dict = {"role": "user", "content": [{"type": "text", "text": transcription },{"type": "image_url", "url": image_url}]}
-    response_dict = {"role": "system", "content": response}
+    transcription_image_dict = {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": transcription},
+            {"type": "image_url", "url": image_url}  # Corrected format for image URL
+        ]
+    }
+    response_dict = {"role": "system", "content": response}    
     recent_conversation_history.append(transcription_image_dict)
     recent_conversation_history.append(response_dict)
     with open(conversation_database, 'w') as f:

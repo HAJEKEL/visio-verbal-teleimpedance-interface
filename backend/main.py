@@ -4,8 +4,12 @@ import ffmpeg
 # 
 import os
 
+os.environ["VOSK_LOG_LEVEL"] = "-1"  # Disable all Vosk logs
+
+
 # main imports
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import FileResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from decouple import config
@@ -35,9 +39,11 @@ origins = [
     "http://localhost:3000",
     "http://127.0.0.1:5174", # Add 127.0.0.1 for browser's localhost interpretation
     "http://127.0.0.1:5173",  # Add 127.0.0.1 as another dev server
+    "http://127.0.0.1:8001",
+    "http://localhost:8001",
     "https://summary-sunbird-dashing.ngrok-free.app",
-    "https://fa04-188-88-134-208.ngrok-free.app"
-    ] # General frontend application server
+    "https://images-sunbird-dashing.ngrok-free.app",
+    "https://frontend-example.ngrok-free.app"] # General frontend application server
 
 # Add CORS middleware to the app
 app.add_middleware(
@@ -49,8 +55,18 @@ app.add_middleware(
 )
 
 # Serve static files from the "static" folder
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/images", StaticFiles(directory="images"), name="images")
+# Serve images on a separate static route
+@app.get("/get_image/{image_name}")
+async def get_image(image_name: str):
+    file_path = f"images/{image_name}"
+    
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
 
+    # Return the image as a response
+    return FileResponse(file_path, media_type="image/jpeg")  # Adjust media_type if needed
 
 @app.get("/")
 async def root():
@@ -85,7 +101,7 @@ async def get_audio():
 
 
 @app.post("/post_audio")
-async def post_audio(file: UploadFile = File(...), image_url: str = None):
+async def post_audio(file: UploadFile = File(...), image_url: str = Form(None)):
     try:
         # Image URL will now correctly be included from the form
         print(f"Received image URL: {image_url}")
@@ -100,24 +116,27 @@ async def post_audio(file: UploadFile = File(...), image_url: str = None):
         ffmpeg.input(original_file_path).output(converted_file_path, ac=1, ar=16000).global_args('-loglevel', 'error', '-hide_banner').run()
 
 
-        transcription = speech_to_text(converted_file_path)
-        if transcription is None:
+        transcript = speech_to_text(converted_file_path)
+        if transcript is None:
             raise HTTPException(status_code=500, detail="Error decoding audio")
 
         # Use the multimodal response if image_url exists
         if image_url:
-            response = get_gpt_response_vlm(transcription, image_url)
+            print("Using multimodal response")
+            transcript = "This is a test message for GPT with an image. What is in the image?"
+            response = get_gpt_response_vlm(transcript,image_url)
         else:
+            print("Using text-only response")
             response = get_gpt_response(transcription)
 
         if response is None:
             raise HTTPException(status_code=500, detail="Error fetching GPT response")
 
         # Update conversation history with or without image
-        if image_url:
-            update_conversation_history_vlm(transcription, image_url, response)
-        else:
-            update_conversation_history(transcription, response)
+        # if image_url:
+        #     update_conversation_history_vlm(transcription, image_url, response)
+        # else:
+        #     update_conversation_history(transcription, response)
 
         audio_file_path = text_to_speech(response)
         if not audio_file_path or not os.path.exists(audio_file_path):
@@ -130,6 +149,8 @@ async def post_audio(file: UploadFile = File(...), image_url: str = None):
         return StreamingResponse(iterfile(), media_type="audio/mpeg")
 
     except Exception as e:
+        # Print the exception to the console to help debug
+        print(f"Error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
@@ -139,25 +160,24 @@ async def post_audio(file: UploadFile = File(...), image_url: str = None):
             os.remove(converted_file_path)
 
 
-@app.post("/upload_image/")
+@app.post("/upload_image")
 async def upload_image(file: UploadFile = File(...)):
     try:
-        if not os.path.exists("static/images"):
-            os.makedirs("static/images")
+        if not os.path.exists("images"):
+            os.makedirs("images")
         # Generate a unique filename
         file_extension = file.filename.split(".")[-1]
         unique_filename = f"{uuid4()}.{file_extension}"
-        file_path = f"static/images/{unique_filename}"
-
+        file_path = f"images/{unique_filename}"
         # Save the file to the static/images folder
         with open(file_path, "wb") as buffer:
             buffer.write(await file.read())
-
         # Generate the file URL using your ngrok domain
-        file_url = f"https://summary-sunbird-dashing.ngrok-free.app/static/images/{unique_filename}"
+        file_url = f"https://images-sunbird-dashing.ngrok-free.app/images/{unique_filename}"
+        print(file_url)
         return file_url
 
     except Exception as e:
+        # Print the exception to the console to help debug
+        print(f"Error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
