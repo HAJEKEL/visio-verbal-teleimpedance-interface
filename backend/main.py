@@ -84,16 +84,16 @@ async def reset():
 async def get_audio():
     # Get saved audio file
     audio_file = "data/voice.wav"
-    transcription = speech_to_text(audio_file)
-    print(transcription)
+    transcript = speech_to_text(audio_file)
+    print(transcript)
     # guard message decoded
-    if transcription is None:
+    if transcript is None:
         raise HTTPException(status_code=500, detail="Error decoding audio")
-    response = get_gpt_response(transcription)
+    response = get_gpt_response(transcript)
     print(response)
     if response is None:
         raise HTTPException(status_code=500, detail="Error fetching gpt response")
-    update_conversation_history(transcription, response)
+    update_conversation_history(transcript, response)
     text_to_speech_play_directly(response)
     # if audio is None:
     #     raise HTTPException(status_code=500, detail="Error generating audio response")
@@ -127,16 +127,16 @@ async def post_audio(file: UploadFile = File(...), image_url: str = Form(None)):
             response = get_gpt_response_vlm(transcript,image_url)
         else:
             print("Using text-only response")
-            response = get_gpt_response(transcription)
+            response = get_gpt_response(transcript)
 
         if response is None:
             raise HTTPException(status_code=500, detail="Error fetching GPT response")
 
         # Update conversation history with or without image
         # if image_url:
-        #     update_conversation_history_vlm(transcription, image_url, response)
+        #     update_conversation_history_vlm(transcript, image_url, response)
         # else:
-        #     update_conversation_history(transcription, response)
+        #     update_conversation_history(transcript, response)
 
         audio_file_path = text_to_speech(response)
         if not audio_file_path or not os.path.exists(audio_file_path):

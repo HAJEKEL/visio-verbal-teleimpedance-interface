@@ -5,20 +5,22 @@ import RecordMessage from "./RecordMessage";
 
 const Controller = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false); // State for recording status
   const [messages, setMessages] = useState<any[]>([]);
   const [imageURL, setImageURL] = useState<string | null>(null); // State for image URL
+  const [mediaRecorder, setMediaRecorder] = useState<any>(null); // Holds media recorder
 
   function createBlobURL(data: any) {
     const blob = new Blob([data], { type: "audio/mpeg" });
-    const url = window.URL.createObjectURL(blob);
-    return url;
+    return window.URL.createObjectURL(blob);
   }
 
   const audioConstraints = {
     audio: {
-      channelCount: 1,    // Mono (1 channel, equivalent to "-ac 1")
-      sampleRate: 16000,  // 16kHz sample rate (equivalent to "-ar 16000")
-    },};
+      channelCount: 1,
+      sampleRate: 16000,
+    },
+  };
 
   const handleImageUpload = async (event: any) => {
     const file = event.target.files[0];
@@ -27,16 +29,13 @@ const Controller = () => {
       formData.append("file", file);
 
       try {
-        // Upload the image to the backend
-        const response = await axios.post(
-          "http://localhost:8000/upload_image",
-          formData
-        );
-        const imageURL = response.data; // Correct access since backend returns plain string
-        console.log(imageURL)
-        setImageURL(imageURL); // Store the image URL in state
+        const response = await axios.post("https://summary-sunbird-dashing.ngrok-free.app/upload_image", formData, {
+          timeout: 10000,
+        });
+        const imageURL = response.data;
+        setImageURL(imageURL);
+        console.log("Image URL being sent:", imageURL);
         alert("Image uploaded successfully!");
-
       } catch (err) {
         console.error("Error uploading image:", err);
         alert("Error uploading image. Please try again.");
@@ -44,38 +43,65 @@ const Controller = () => {
     }
   };
 
+  const startRecording = () => {
+    navigator.mediaDevices.getUserMedia(audioConstraints).then((stream) => {
+      const recorder = new MediaRecorder(stream);
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+
+      recorder.ondataavailable = (e: any) => {
+        const audioBlob = e.data;
+        const audioUrl = createBlobURL(audioBlob);
+        handleStop(audioUrl);
+      };
+    });
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleRecordButtonClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
   const handleStop = async (blobUrl: string) => {
     setIsLoading(true);
-  
+
     const myMessage = { sender: "me", blobUrl };
     const messagesArr = [...messages, myMessage];
-  
+
     fetch(blobUrl)
       .then((res) => res.blob())
       .then(async (blob) => {
         const formData = new FormData();
         formData.append("file", blob, "myFile.wav");
-  
-        // If an image URL exists, include it as a separate field
+
         if (imageURL) {
-          formData.append("image_url", imageURL);  // Ensure the image URL is included correctly
+          formData.append("image_url", imageURL);
         }
-        
-        console.log('Image URL being sent:', formData.get('image_url'));
 
         await axios
-          .post("http://localhost:8000/post_audio", formData, {
+          .post("https://summary-sunbird-dashing.ngrok-free.app/post_audio", formData, {
             responseType: "arraybuffer",
           })
           .then((res: any) => {
             const blob = res.data;
             const audio = new Audio();
             audio.src = createBlobURL(blob);
-  
+
             const rachelMessage = { sender: "rachel", blobUrl: audio.src };
             messagesArr.push(rachelMessage);
             setMessages(messagesArr);
-  
+
             setIsLoading(false);
             audio.play();
           })
@@ -85,14 +111,12 @@ const Controller = () => {
           });
       });
   };
-  
+
   return (
     <div className="h-screen overflow-y-hidden">
-      {/* Title */}
       <Title setMessages={setMessages} />
 
       <div className="flex flex-col justify-between h-full overflow-y-scroll pb-96">
-        {/* Conversation */}
         <div className="mt-5 px-5">
           {messages?.map((audio, index) => {
             return (
@@ -100,33 +124,26 @@ const Controller = () => {
                 key={index + audio.sender}
                 className={
                   "flex flex-col " +
-                  (audio.sender == "rachel" && "flex items-end")
+                  (audio.sender === "rachel" && "flex items-end")
                 }
               >
-                {/* Sender */}
                 <div className="mt-4 ">
                   <p
                     className={
-                      audio.sender == "rachel"
+                      audio.sender === "rachel"
                         ? "text-right mr-2 italic text-green-500"
                         : "ml-2 italic text-blue-500"
                     }
                   >
                     {audio.sender}
                   </p>
-
-                  {/* Message */}
-                  <audio
-                    src={audio.blobUrl}
-                    className="appearance-none"
-                    controls
-                  />
+                  <audio src={audio.blobUrl} className="appearance-none" controls />
                 </div>
               </div>
             );
           })}
 
-          {messages.length == 0 && !isLoading && (
+          {messages.length === 0 && !isLoading && (
             <div className="text-center font-light italic mt-10">
               Send Rachel a message...
             </div>
@@ -139,11 +156,9 @@ const Controller = () => {
           )}
         </div>
 
-        {/* Recorder */}
         <div className="fixed bottom-0 w-full py-6 border-t text-center bg-gradient-to-r from-sky-500 to-green-500">
           <div className="flex justify-center items-center w-full">
             <div>
-              {/* Optional Image Upload Button */}
               <input
                 type="file"
                 accept="image/*"
@@ -151,8 +166,13 @@ const Controller = () => {
                 className="mb-4"
               />
 
-              {/* Record Button (Always Enabled) */}
-              <RecordMessage handleStop={handleStop} />
+              {/* Record/Stop Button */}
+              <button
+                onClick={handleRecordButtonClick}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md"
+              >
+                {isRecording ? "Stop Recording" : "Start Recording"}
+              </button>
             </div>
           </div>
         </div>
