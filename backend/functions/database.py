@@ -22,7 +22,7 @@ def get_recent_conversation_history():
             raise FileNotFoundError(f"File {conversation_history} does not exist.")
         
         if os.path.getsize(conversation_history) == 0:
-            print("Conversation history file is empty.")
+            print("empty history")
         else:
             with open(conversation_history) as f:
                 data = json.load(f)
@@ -56,10 +56,10 @@ def update_conversation_history_vlm(transcription,image_url,response):
     recent_conversation_history = get_recent_conversation_history()[1:]
     # Append the new message
     transcription_image_dict = {
-        "role": "user",
-        "content": [
-            {"type": "text", "text": transcription},
-            {"type": "image_url", "url": image_url}  # Corrected format for image URL
+    "role": "user",
+    "content": [
+        {"type": "text", "text": transcription},
+        {"type": "image_url", "image_url": {"url": image_url}}  # Corrected format
         ]
     }
     response_dict = {"role": "system", "content": response}    

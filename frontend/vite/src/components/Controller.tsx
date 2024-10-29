@@ -5,10 +5,10 @@ import RecordMessage from "./RecordMessage";
 
 const Controller = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false); // State for recording status
+  const [isRecording, setIsRecording] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
-  const [imageURL, setImageURL] = useState<string | null>(null); // State for image URL
-  const [mediaRecorder, setMediaRecorder] = useState<any>(null); // Holds media recorder
+  const [imageURL, setImageURL] = useState<string | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<any>(null);
 
   function createBlobURL(data: any) {
     const blob = new Blob([data], { type: "audio/mpeg" });
@@ -25,21 +25,90 @@ const Controller = () => {
   const handleImageUpload = async (event: any) => {
     const file = event.target.files[0];
     if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        const response = await axios.post("https://summary-sunbird-dashing.ngrok-free.app/upload_image", formData, {
-          timeout: 10000,
-        });
-        const imageURL = response.data;
-        setImageURL(imageURL);
-        console.log("Image URL being sent:", imageURL);
-        alert("Image uploaded successfully!");
-      } catch (err) {
-        console.error("Error uploading image:", err);
-        alert("Error uploading image. Please try again.");
+      if (file.size > 1 * 1024 * 1024) {
+        // Resize if larger than 1MB
+        const resizedFile = await resizeImage(file);
+        uploadImage(resizedFile);
+      } else {
+        // Upload directly if below 1MB
+        uploadImage(file);
       }
+    }
+  };
+
+  const resizeImage = (file: File) => {
+    return new Promise<File>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          let quality = 0.7; // Initial quality
+
+          if (file.size > 5 * 1024 * 1024) quality = 0.5; // 5MB+
+          if (file.size > 10 * 1024 * 1024) quality = 0.3; // 10MB+
+
+          const maxSize = 1024;
+          if (width > maxSize || height > maxSize) {
+            if (width > height) {
+              height = (height * maxSize) / width;
+              width = maxSize;
+            } else {
+              width = (width * maxSize) / height;
+              height = maxSize;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const resizedFile = new File([blob], file.name, {
+                    type: "image/jpeg",
+                    lastModified: Date.now(),
+                  });
+                  resolve(resizedFile);
+                } else {
+                  reject(new Error("Image resizing failed."));
+                }
+              },
+              "image/jpeg",
+              quality
+            );
+          }
+        };
+      };
+
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const uploadImage = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await axios.post("https://summary-sunbird-dashing.ngrok-free.app/upload_image", formData, {
+        timeout: 10000,
+      });
+      const imageURL = response.data;
+      setImageURL(imageURL);
+      console.log("Image URL being sent:", imageURL);
+      alert("Image uploaded successfully!");
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      alert("Error uploading image. Please try again.");
     }
   };
 
@@ -87,6 +156,7 @@ const Controller = () => {
 
         if (imageURL) {
           formData.append("image_url", imageURL);
+          setImageURL(null); // Clear after sending
         }
 
         await axios

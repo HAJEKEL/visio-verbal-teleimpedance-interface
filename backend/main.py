@@ -123,7 +123,6 @@ async def post_audio(file: UploadFile = File(...), image_url: str = Form(None)):
         # Use the multimodal response if image_url exists
         if image_url:
             print("Using multimodal response")
-            transcript = "This is a test message for GPT with an image. What is in the image?"
             response = get_gpt_response_vlm(transcript,image_url)
         else:
             print("Using text-only response")
@@ -133,10 +132,10 @@ async def post_audio(file: UploadFile = File(...), image_url: str = Form(None)):
             raise HTTPException(status_code=500, detail="Error fetching GPT response")
 
         # Update conversation history with or without image
-        # if image_url:
-        #     update_conversation_history_vlm(transcript, image_url, response)
-        # else:
-        #     update_conversation_history(transcript, response)
+        if image_url:
+            update_conversation_history_vlm(transcript, image_url, response)
+        else:
+            update_conversation_history(transcript, response)
 
         audio_file_path = text_to_speech(response)
         if not audio_file_path or not os.path.exists(audio_file_path):
@@ -145,7 +144,6 @@ async def post_audio(file: UploadFile = File(...), image_url: str = Form(None)):
         def iterfile():
             with open(audio_file_path, mode="rb") as file_like:
                 yield from file_like
-
         return StreamingResponse(iterfile(), media_type="audio/mpeg")
 
     except Exception as e:

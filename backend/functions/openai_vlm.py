@@ -21,8 +21,7 @@ api_key = config("OPEN_AI_KEY")
 client = openai.OpenAI(api_key=api_key, organization=organization)
 
 def get_gpt_response_vlm(transcript,image_url):
-    #history = get_recent_conversation_history()
-    #print("history: ", history)
+    history = get_recent_conversation_history()
 
     # Add a cache-busting parameter to ensure fresh requests
     image_url = f"{image_url}?cache_bust={int(time.time())}"
@@ -37,15 +36,15 @@ def get_gpt_response_vlm(transcript,image_url):
         print(f"Error checking image URL: {e}")
         return None
     
-    user_message = [{"role": "user", "content": [{"type": "text", "text": transcript },{"type": "image_url", "image_url": {"url": image_url}}]}]  # Correct structure for image URL
-    #history.append(user_message)
+    user_message = {"role": "user", "content": [{"type": "text", "text": transcript },{"type": "image_url", "image_url": {"url": image_url}}]}  # Correct structure for image URL
+    history.append(user_message)
     #print("Updated history: ", history)
     
     try:
         # Create a stream using the OpenAI API
         stream = client.chat.completions.create(
             model="gpt-4o",
-            messages=user_message,
+            messages=history,
             stream=True,
             max_tokens=300
         )
