@@ -26,11 +26,9 @@ const Controller = () => {
     const file = event.target.files[0];
     if (file) {
       if (file.size > 1 * 1024 * 1024) {
-        // Resize if larger than 1MB
         const resizedFile = await resizeImage(file);
         uploadImage(resizedFile);
       } else {
-        // Upload directly if below 1MB
         uploadImage(file);
       }
     }
@@ -49,10 +47,10 @@ const Controller = () => {
           const canvas = document.createElement("canvas");
           let width = img.width;
           let height = img.height;
-          let quality = 0.7; // Initial quality
+          let quality = 0.7;
 
-          if (file.size > 5 * 1024 * 1024) quality = 0.5; // 5MB+
-          if (file.size > 10 * 1024 * 1024) quality = 0.3; // 10MB+
+          if (file.size > 5 * 1024 * 1024) quality = 0.5;
+          if (file.size > 10 * 1024 * 1024) quality = 0.3;
 
           const maxSize = 1024;
           if (width > maxSize || height > maxSize) {
@@ -104,6 +102,13 @@ const Controller = () => {
       });
       const imageURL = response.data;
       setImageURL(imageURL);
+
+      // Add image message to chat history
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { sender: "me", type: "image", imageUrl: imageURL },
+      ]);
+
       console.log("Image URL being sent:", imageURL);
       alert("Image uploaded successfully!");
     } catch (err) {
@@ -145,7 +150,7 @@ const Controller = () => {
   const handleStop = async (blobUrl: string) => {
     setIsLoading(true);
 
-    const myMessage = { sender: "me", blobUrl };
+    const myMessage = { sender: "me", type: "audio", blobUrl };
     const messagesArr = [...messages, myMessage];
 
     fetch(blobUrl)
@@ -156,7 +161,7 @@ const Controller = () => {
 
         if (imageURL) {
           formData.append("image_url", imageURL);
-          setImageURL(null); // Clear after sending
+          setImageURL(null);
         }
 
         await axios
@@ -168,7 +173,7 @@ const Controller = () => {
             const audio = new Audio();
             audio.src = createBlobURL(blob);
 
-            const rachelMessage = { sender: "rachel", blobUrl: audio.src };
+            const rachelMessage = { sender: "rachel", type: "audio", blobUrl: audio.src };
             messagesArr.push(rachelMessage);
             setMessages(messagesArr);
 
@@ -188,26 +193,32 @@ const Controller = () => {
 
       <div className="flex flex-col justify-between h-full overflow-y-scroll pb-96">
         <div className="mt-5 px-5">
-          {messages?.map((audio, index) => {
+          {messages?.map((message, index) => {
             return (
               <div
-                key={index + audio.sender}
+                key={index + message.sender}
                 className={
                   "flex flex-col " +
-                  (audio.sender === "rachel" && "flex items-end")
+                  (message.sender === "rachel" && "flex items-end")
                 }
               >
                 <div className="mt-4 ">
                   <p
                     className={
-                      audio.sender === "rachel"
+                      message.sender === "rachel"
                         ? "text-right mr-2 italic text-green-500"
                         : "ml-2 italic text-blue-500"
                     }
                   >
-                    {audio.sender}
+                    {message.sender}
                   </p>
-                  <audio src={audio.blobUrl} className="appearance-none" controls />
+                  
+                  {/* Display audio or image based on message type */}
+                  {message.type === "audio" ? (
+                    <audio src={message.blobUrl} className="appearance-none" controls />
+                  ) : message.type === "image" ? (
+                    <img src={message.imageUrl} alt="Uploaded" className="w-48 h-auto mt-2" />
+                  ) : null}
                 </div>
               </div>
             );
