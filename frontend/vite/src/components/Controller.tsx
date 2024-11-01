@@ -22,98 +22,36 @@ const Controller = () => {
     },
   };
 
-  const handleImageUpload = async (event: any) => {
-    const file = event.target.files[0];
-    if (file) {
-      if (file.size > 1 * 1024 * 1024) {
-        const resizedFile = await resizeImage(file);
-        uploadImage(resizedFile);
-      } else {
-        uploadImage(file);
-      }
-    }
-  };
-
-  const resizeImage = (file: File) => {
-    return new Promise<File>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          let width = img.width;
-          let height = img.height;
-          let quality = 0.7;
-
-          if (file.size > 5 * 1024 * 1024) quality = 0.5;
-          if (file.size > 10 * 1024 * 1024) quality = 0.3;
-
-          const maxSize = 1024;
-          if (width > maxSize || height > maxSize) {
-            if (width > height) {
-              height = (height * maxSize) / width;
-              width = maxSize;
-            } else {
-              width = (width * maxSize) / height;
-              height = maxSize;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            canvas.toBlob(
-              (blob) => {
-                if (blob) {
-                  const resizedFile = new File([blob], file.name, {
-                    type: "image/jpeg",
-                    lastModified: Date.now(),
-                  });
-                  resolve(resizedFile);
-                } else {
-                  reject(new Error("Image resizing failed."));
-                }
-              },
-              "image/jpeg",
-              quality
-            );
-          }
-        };
-      };
-
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  const uploadImage = async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-
+  const handleCaptureImage = async () => {
     try {
-      const response = await axios.post("https://summary-sunbird-dashing.ngrok-free.app/upload_image", formData, {
+      // Capture the snapshot as a blob from the eye tracker
+      const response = await axios.get("https://eye-tracker-sunbird-dashing.ngrok-free.app/capture_snapshot", {
+        responseType: "blob",
+      });
+      const blob = response.data;
+
+      // Convert the blob into a File to send to the backend
+      const file = new File([blob], "snapshot.jpg", { type: "image/jpeg" });
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Send the image file to the backend's upload endpoint
+      const uploadResponse = await axios.post("https://summary-sunbird-dashing.ngrok-free.app/upload_image", formData, {
         timeout: 10000,
       });
-      const imageURL = response.data;
-      setImageURL(imageURL);
+      const uploadedImageURL = uploadResponse.data;
+      setImageURL(uploadedImageURL); // Store the backend URL for future use
 
-      // Add image message to chat history
+      // Add the image message to the chat history
       setMessages((prevMessages) => [
         ...prevMessages,
-        { sender: "me", type: "image", imageUrl: imageURL },
+        { sender: "me", type: "image", imageUrl: uploadedImageURL },
       ]);
 
-      console.log("Image URL being sent:", imageURL);
-      alert("Image uploaded successfully!");
+      alert("Snapshot captured and uploaded successfully!");
     } catch (err) {
-      console.error("Error uploading image:", err);
-      alert("Error uploading image. Please try again.");
+      console.error("Error capturing or uploading snapshot:", err);
+      alert("Failed to capture or upload snapshot. Please try again.");
     }
   };
 
@@ -161,7 +99,7 @@ const Controller = () => {
 
         if (imageURL) {
           formData.append("image_url", imageURL);
-          setImageURL(null);
+          setImageURL(null); // Clear imageURL after use
         }
 
         await axios
@@ -217,7 +155,7 @@ const Controller = () => {
                   {message.type === "audio" ? (
                     <audio src={message.blobUrl} className="appearance-none" controls />
                   ) : message.type === "image" ? (
-                    <img src={message.imageUrl} alt="Uploaded" className="w-48 h-auto mt-2" />
+                    <img src={message.imageUrl} alt="Captured Snapshot" className="w-48 h-auto mt-2" />
                   ) : null}
                 </div>
               </div>
@@ -240,17 +178,18 @@ const Controller = () => {
         <div className="fixed bottom-0 w-full py-6 border-t text-center bg-gradient-to-r from-sky-500 to-green-500">
           <div className="flex justify-center items-center w-full">
             <div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="mb-4"
-              />
+              {/* Capture Button (replaces file upload button) */}
+              <button
+                onClick={handleCaptureImage}
+                className="px-4 py-2 bg-green-500 text-white rounded-md"
+              >
+                Capture
+              </button>
 
               {/* Record/Stop Button */}
               <button
                 onClick={handleRecordButtonClick}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md"
+                className="px-4 py-2 bg-blue-500 text-white rounded-md ml-4"
               >
                 {isRecording ? "Stop Recording" : "Start Recording"}
               </button>

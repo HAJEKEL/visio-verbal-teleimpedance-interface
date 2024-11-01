@@ -3,6 +3,7 @@ from decouple import config
 from pathlib import Path
 import os
 import subprocess
+import re
 
 # Custom function imports
 from functions.database import get_recent_conversation_history
@@ -41,16 +42,23 @@ def get_gpt_response(transcript):
 
 def text_to_speech(response_text):
     try:
-        # Initiate OpenAI client to generate TTS audio
+        # Define pattern to locate the stiffness matrix
+        stiffness_pattern = r"### Stiffness Matrix(?: \(Recommended Values\))?(?:\n|.)*"
+        
+        # Filter out the stiffness matrix part from the response text
+        filtered_text = re.sub(stiffness_pattern, "", response_text).strip()
+        
+        # Initiate OpenAI client to generate TTS audio with filtered text
         response = client.audio.speech.create(
             model="tts-1",
             voice="alloy",
-            input=response_text,
+            input=filtered_text,
         )
-        path = os.path.join(os.path.dirname(__file__), '..', 'audio_outputs', 'output.mp3')
         
         # Save the generated speech to an MP3 file
+        path = os.path.join(os.path.dirname(__file__), '..', 'audio_outputs', 'output.mp3')
         response.stream_to_file(path)
+        
         return path
 
     except Exception as e:

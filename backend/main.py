@@ -1,13 +1,16 @@
 # uvicorn main:app  # uvicorn main:app --reload
 # audio format: wav
 import ffmpeg
-# 
 import os
+import numpy as np
+import matplotlib.pyplot as plt
+
 
 os.environ["VOSK_LOG_LEVEL"] = "-1"  # Disable all Vosk logs
 
 
 # main imports
+from fastapi import BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import StreamingResponse
@@ -21,6 +24,9 @@ from functions.database import update_conversation_history, reset_conversation_h
 from functions.tts_play_directly import text_to_speech_play_directly
 from functions.openai_vlm import get_gpt_response_vlm
 from functions.database import update_conversation_history_vlm
+from functions.stiffness_extractor import extract_stiffness_matrix
+from functions.ellipsoid_plot import generate_ellipsoid_plot
+
 # Make a static folder to send images to openai
 from fastapi.staticfiles import StaticFiles
 # For unique file names
@@ -56,12 +62,15 @@ app.add_middleware(
 
 # Serve static files from the "static" folder
 app.mount("/images", StaticFiles(directory="images"), name="images")
+app.mount("/ellipsoids", StaticFiles(directory="ellipsoids"), name="ellipsoids")
+
 # Serve images on a separate static route
 @app.get("/get_image/{image_name}")
 async def get_image(image_name: str):
     file_path = f"images/{image_name}"
     
-    # Check if the file exists
+    # Check if the file exists:
+
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Image not found")
 
@@ -101,7 +110,11 @@ async def get_audio():
 
 
 @app.post("/post_audio")
-async def post_audio(file: UploadFile = File(...), image_url: str = Form(None)):
+async def post_audio(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    image_url: str = Form(None)
+):
     try:
         # Image URL will now correctly be included from the form
         print(f"Received image URL: {image_url}")
@@ -113,8 +126,9 @@ async def post_audio(file: UploadFile = File(...), image_url: str = Form(None)):
         with open(original_file_path, "wb") as buffer:
             buffer.write(await file.read())
 
-        ffmpeg.input(original_file_path).output(converted_file_path, ac=1, ar=16000).global_args('-loglevel', 'error', '-hide_banner').run()
-
+        ffmpeg.input(original_file_path).output(
+            converted_file_path, ac=1, ar=16000
+        ).global_args('-loglevel', 'error', '-hide_banner').run()
 
         transcript = speech_to_text(converted_file_path)
         if transcript is None:
@@ -123,14 +137,24 @@ async def post_audio(file: UploadFile = File(...), image_url: str = Form(None)):
         # Use the multimodal response if image_url exists
         if image_url:
             print("Using multimodal response")
-            response = get_gpt_response_vlm(transcript,image_url)
+            response = get_gpt_response_vlm(transcript, image_url)
         else:
             print("Using text-only response")
             response = get_gpt_response(transcript)
 
         if response is None:
             raise HTTPException(status_code=500, detail="Error fetching GPT response")
+        else:
+            print(response)
+        
+        # Extract the stiffness matrix immediately after receiving the response
+        stiffness_matrix = extract_stiffness_matrix(response)
 
+        # Trigger ellipsoid plot generation if stiffness matrix is found
+        if stiffness_matrix:
+            background_tasks.add_task(generate_ellipsoid_plot, stiffness_matrix)
+
+        
         # Update conversation history with or without image
         if image_url:
             update_conversation_history_vlm(transcript, image_url, response)
@@ -158,6 +182,8 @@ async def post_audio(file: UploadFile = File(...), image_url: str = Form(None)):
             os.remove(converted_file_path)
 
 
+
+
 @app.post("/upload_image")
 async def upload_image(file: UploadFile = File(...)):
     try:
@@ -179,3 +205,47 @@ async def upload_image(file: UploadFile = File(...)):
         # Print the exception to the console to help debug
         print(f"Error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/stiffness_ellipsoid")
+async def stiffness_ellipsoid(stiffness_matrix: list):
+    # Convert input matrix to NumPy array
+    K = np.array(stiffness_matrix)
+
+    # Perform singular value decomposition
+    U, S, _ = np.linalg.svd(K)
+    radii = 1 / np.sqrt(S)
+
+    # Generate ellipsoid data
+    u = np.linspace(0, 2 * np.pi, 100)
+    v = np.linspace(0, np.pi, 50)
+    x = radii[0] * np.outer(np.cos(u), np.sin(v))
+    y = radii[1] * np.outer(np.sin(u), np.sin(v))
+    z = radii[2] * np.outer(np.ones_like(u), np.cos(v))
+
+    # Rotate the ellipsoid
+    ellipsoid = np.array([x, y, z])
+    ellipsoid_rotated = np.einsum('ij,jkl->ikl', U, ellipsoid)
+
+    # Plot the ellipsoid
+    fig = plt.figure(figsize=(6, 6))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(
+        ellipsoid_rotated[0], ellipsoid_rotated[1], ellipsoid_rotated[2],
+        color='b', alpha=0.6, rstride=4, cstride=4, linewidth=0.5
+    )
+    ax.set_xlabel('X-axis (stiffness)')
+    ax.set_ylabel('Y-axis (stiffness)')
+    ax.set_zlabel('Z-axis (stiffness)')
+    ax.set_title("Stiffness Ellipsoid")
+
+    # Ensure ellipsoids directory exists
+    if not os.path.exists("ellipsoids"):
+        os.makedirs("ellipsoids")
+
+    # Save plot to the ellipsoids directory
+    filename = f"ellipsoids/{uuid4()}.png"
+    fig.savefig(filename)
+    plt.close(fig)
+
+    # Return the image URL for the new ellipsoid service
+    return {"image_url": f"http://localhost:8002/ellipsoids/{filename.split('/')[-1]}"}
