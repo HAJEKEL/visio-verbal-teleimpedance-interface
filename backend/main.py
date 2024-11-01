@@ -4,10 +4,9 @@ import ffmpeg
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-
+import requests
 
 os.environ["VOSK_LOG_LEVEL"] = "-1"  # Disable all Vosk logs
-
 
 # main imports
 from fastapi import BackgroundTasks
@@ -32,8 +31,6 @@ from fastapi.staticfiles import StaticFiles
 # For unique file names
 from uuid import uuid4
 
-
-
 # Initiate app
 app = FastAPI()
 # CORS origins that are allowed to connect to this server
@@ -49,7 +46,10 @@ origins = [
     "http://localhost:8001",
     "https://summary-sunbird-dashing.ngrok-free.app",
     "https://images-sunbird-dashing.ngrok-free.app",
-    "https://frontend-example.ngrok-free.app"] # General frontend application server
+    "https://frontend-example.ngrok-free.app",
+    "https://ellipsoids-sunbird-dashing.ngrok-free.app",
+    "https://stiffness-matrix-server.example.com" # Stiffness matrix server
+]
 
 # Add CORS middleware to the app
 app.add_middleware(
@@ -69,13 +69,12 @@ app.mount("/ellipsoids", StaticFiles(directory="ellipsoids"), name="ellipsoids")
 async def get_image(image_name: str):
     file_path = f"images/{image_name}"
     
-    # Check if the file exists:
-
+    # Check if the file exists
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Image not found")
 
     # Return the image as a response
-    return FileResponse(file_path, media_type="image/jpeg")  # Adjust media_type if needed
+    return FileResponse(file_path, media_type="image/jpeg")
 
 @app.get("/")
 async def root():
@@ -91,23 +90,17 @@ async def reset():
 
 @app.get("/get_audio")
 async def get_audio():
-    # Get saved audio file
     audio_file = "data/voice.wav"
     transcript = speech_to_text(audio_file)
     print(transcript)
-    # guard message decoded
     if transcript is None:
         raise HTTPException(status_code=500, detail="Error decoding audio")
     response = get_gpt_response(transcript)
     print(response)
     if response is None:
-        raise HTTPException(status_code=500, detail="Error fetching gpt response")
+        raise HTTPException(status_code=500, detail="Error fetching GPT response")
     update_conversation_history(transcript, response)
     text_to_speech_play_directly(response)
-    # if audio is None:
-    #     raise HTTPException(status_code=500, detail="Error generating audio response")
-    # return "Done"
-
 
 @app.post("/post_audio")
 async def post_audio(
@@ -150,28 +143,32 @@ async def post_audio(
         # Extract the stiffness matrix immediately after receiving the response
         stiffness_matrix = extract_stiffness_matrix(response)
 
-        # Trigger ellipsoid plot generation if stiffness matrix is found
+        # Send stiffness matrix to the dedicated stiffness matrix server
+        matrix_url = None
         if stiffness_matrix:
-            background_tasks.add_task(generate_ellipsoid_plot, stiffness_matrix)
+            matrix_response = requests.post(
+                "https://stiffness-matrix-server.example.com/upload_stiffness_matrix",
+                json={"stiffness_matrix": stiffness_matrix}
+            )
+            matrix_url = matrix_response.json().get("matrix_url")
 
-        
-        # Update conversation history with or without image
-        if image_url:
-            update_conversation_history_vlm(transcript, image_url, response)
-        else:
-            update_conversation_history(transcript, response)
-
+        # Generate audio response
         audio_file_path = text_to_speech(response)
         if not audio_file_path or not os.path.exists(audio_file_path):
             raise HTTPException(status_code=400, detail="Failed to generate audio")
 
+        # Define the audio streaming function
         def iterfile():
             with open(audio_file_path, mode="rb") as file_like:
                 yield from file_like
-        return StreamingResponse(iterfile(), media_type="audio/mpeg")
+
+        # Return streaming audio with matrix URL in headers
+        response_headers = {}
+        if matrix_url:
+            response_headers["x-matrix-url"] = matrix_url
+        return StreamingResponse(iterfile(), media_type="audio/mpeg", headers=response_headers)
 
     except Exception as e:
-        # Print the exception to the console to help debug
         print(f"Error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -180,9 +177,6 @@ async def post_audio(
             os.remove(original_file_path)
         if os.path.exists(converted_file_path):
             os.remove(converted_file_path)
-
-
-
 
 @app.post("/upload_image")
 async def upload_image(file: UploadFile = File(...)):
@@ -202,50 +196,10 @@ async def upload_image(file: UploadFile = File(...)):
         return file_url
 
     except Exception as e:
-        # Print the exception to the console to help debug
         print(f"Error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/stiffness_ellipsoid")
-async def stiffness_ellipsoid(stiffness_matrix: list):
-    # Convert input matrix to NumPy array
-    K = np.array(stiffness_matrix)
-
-    # Perform singular value decomposition
-    U, S, _ = np.linalg.svd(K)
-    radii = 1 / np.sqrt(S)
-
-    # Generate ellipsoid data
-    u = np.linspace(0, 2 * np.pi, 100)
-    v = np.linspace(0, np.pi, 50)
-    x = radii[0] * np.outer(np.cos(u), np.sin(v))
-    y = radii[1] * np.outer(np.sin(u), np.sin(v))
-    z = radii[2] * np.outer(np.ones_like(u), np.cos(v))
-
-    # Rotate the ellipsoid
-    ellipsoid = np.array([x, y, z])
-    ellipsoid_rotated = np.einsum('ij,jkl->ikl', U, ellipsoid)
-
-    # Plot the ellipsoid
-    fig = plt.figure(figsize=(6, 6))
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(
-        ellipsoid_rotated[0], ellipsoid_rotated[1], ellipsoid_rotated[2],
-        color='b', alpha=0.6, rstride=4, cstride=4, linewidth=0.5
-    )
-    ax.set_xlabel('X-axis (stiffness)')
-    ax.set_ylabel('Y-axis (stiffness)')
-    ax.set_zlabel('Z-axis (stiffness)')
-    ax.set_title("Stiffness Ellipsoid")
-
-    # Ensure ellipsoids directory exists
-    if not os.path.exists("ellipsoids"):
-        os.makedirs("ellipsoids")
-
-    # Save plot to the ellipsoids directory
-    filename = f"ellipsoids/{uuid4()}.png"
-    fig.savefig(filename)
-    plt.close(fig)
-
-    # Return the image URL for the new ellipsoid service
-    return {"image_url": f"http://localhost:8002/ellipsoids/{filename.split('/')[-1]}"}
+@app.post("/generate_ellipsoid")
+async def generate_ellipsoid(stiffness_matrix: list):
+    filename = generate_ellipsoid_plot(stiffness_matrix)
+    return {"ellipsoid_url": f"https://ellipsoids-sunbird-dashing.ngrok-free.app/ellipsoids/{filename.split('/')[-1]}"}
