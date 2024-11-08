@@ -36,7 +36,4 @@ def speech_to_text(audio_file):
         print(e)
         return None
 
-# # Example usage
-# audio_file = os.path.join(os.path.dirname(__file__), "..", "data", "voice.wav")
-# transcript = speech_to_text(audio_file)
-# print(transcript)
+

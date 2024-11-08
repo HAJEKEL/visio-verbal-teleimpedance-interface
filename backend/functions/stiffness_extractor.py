@@ -1,43 +1,51 @@
+import os
 import re
+import json
+import commentjson
+from uuid import uuid4
 
-def extract_stiffness_matrix(response_text):
-    print("Extracting stiffness matrix...")
-    # Find the position of "### Stiffness Matrix"
-    matrix_header = "### Stiffness Matrix"
-    start_index = response_text.find(matrix_header)
-    if start_index == -1:
-        print("Stiffness matrix header not found.")
-        return None
-    # Extract the text starting from the header
-    text_after_header = response_text[start_index + len(matrix_header):]
-    # Use regex to find the markdown table
-    table_pattern = r"\|.*\n(?:\|.*\n)+"
-    match = re.search(table_pattern, text_after_header)
-    if not match:
-        print("No table found after stiffness matrix header.")
-        return None
-    table_text = match.group()
-    print("Table text found:")
-    print(table_text)
-    # Split the table into lines
-    lines = table_text.strip().split('\n')
-    # Skip the header and separator lines
-    data_lines = [line for line in lines if re.match(r'\|\s*[\d.]+', line)]
-    if len(data_lines) != 3:
-        print(f"Expected 3 data rows, found {len(data_lines)}.")
-        return None
-    stiffness_matrix = []
-    for line in data_lines:
-        # Extract the numeric values from each line
-        values = [v.strip() for v in line.strip('|').split('|')]
-        if len(values) != 3:
-            print(f"Unexpected number of values in line: {line}")
-            return None
+def extract_stiffness_matrix(response):
+    # Define the pattern to extract the JSON code block
+    pattern = r"```json\n(.*?)\n```"
+    match = re.search(pattern, response, re.DOTALL)
+    
+    if match:
+        json_code = match.group(1)
         try:
-            row = [float(v) for v in values]
-            stiffness_matrix.append(row)
-        except ValueError as e:
-            print(f"Error converting to float: {e}")
+            # Parse the JSON code with comments
+            data = commentjson.loads(json_code)
+            stiffness_matrix = data.get('stiffness_matrix')
+            if stiffness_matrix is None:
+                print("Key 'stiffness_matrix' not found in JSON data.")
+                return None
+            
+            # Validate the stiffness matrix structure
+            if len(stiffness_matrix) != 3:
+                print(f"Expected 3 rows in stiffness_matrix, found {len(stiffness_matrix)}.")
+                return None
+            for row in stiffness_matrix:
+                if len(row) != 3:
+                    print(f"Expected 3 values in row {row}, found {len(row)}.")
+                    return None
+            
+            # Save stiffness matrix to a file in 'matrices' directory if valid
+            if not os.path.exists("matrices"):
+                os.makedirs("matrices")
+            matrix_filename = f"{uuid4()}.json"
+            matrix_file_path = f"matrices/{matrix_filename}"
+            
+            with open(matrix_file_path, "w") as matrix_file:
+                json.dump(stiffness_matrix, matrix_file)
+            
+            # Generate URL for the matrix file
+            matrix_file_url = f"https://matrices-sunbird-dashing.ngrok-free.app/matrices/{matrix_filename}"
+            print("Stiffness matrix extracted and saved:", stiffness_matrix)
+            
+            return stiffness_matrix, matrix_file_url  # Return the URL directly
+
+        except commentjson.JSONLibraryException as e:
+            print(f"Error parsing JSON with comments: {e}")
             return None
-    print("Stiffness matrix extracted:", stiffness_matrix)
-    return stiffness_matrix
+    else:
+        print("No JSON code block found in the response.")
+        return None

@@ -1,3 +1,6 @@
 .env
-static/images
 images
+ellipsoids
+audio_inputs
+audio_outputs
+matrices

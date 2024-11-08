@@ -5,6 +5,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import requests
+import json
 
 os.environ["VOSK_LOG_LEVEL"] = "-1"  # Disable all Vosk logs
 
@@ -34,17 +35,7 @@ from uuid import uuid4
 # Initiate app
 app = FastAPI()
 # CORS origins that are allowed to connect to this server
-origins = [
-    "http://localhost:5173", # React dev server
-    "http://localhost:5174", # React dev server second
-    "http://localhost:4173", # React deploy server
-    "http://localhost:4174", # React deploy server second
-    "http://localhost:3000",
-    "http://127.0.0.1:5174", # Add 127.0.0.1 for browser's localhost interpretation
-    "http://127.0.0.1:5173",  # Add 127.0.0.1 as another dev server
-    "http://127.0.0.1:8001",
-    "http://localhost:8001",
-    "https://summary-sunbird-dashing.ngrok-free.app",
+origins = ["https://summary-sunbird-dashing.ngrok-free.app",
     "https://images-sunbird-dashing.ngrok-free.app",
     "https://frontend-example.ngrok-free.app",
     "https://ellipsoids-sunbird-dashing.ngrok-free.app",
@@ -58,23 +49,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["x-matrix-url", "x-ellipsoid-url"]
 )
-
-# Serve static files from the "static" folder
-app.mount("/images", StaticFiles(directory="images"), name="images")
-app.mount("/ellipsoids", StaticFiles(directory="ellipsoids"), name="ellipsoids")
-
-# Serve images on a separate static route
-@app.get("/get_image/{image_name}")
-async def get_image(image_name: str):
-    file_path = f"images/{image_name}"
-    
-    # Check if the file exists
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Image not found")
-
-    # Return the image as a response
-    return FileResponse(file_path, media_type="image/jpeg")
 
 @app.get("/")
 async def root():
@@ -90,7 +66,7 @@ async def reset():
 
 @app.get("/get_audio")
 async def get_audio():
-    audio_file = "data/voice.wav"
+    audio_file = "audio_inputs/voice.wav"
     transcript = speech_to_text(audio_file)
     print(transcript)
     if transcript is None:
@@ -104,18 +80,16 @@ async def get_audio():
 
 @app.post("/post_audio")
 async def post_audio(
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     image_url: str = Form(None)
 ):
     try:
-        # Image URL will now correctly be included from the form
+        # Image URL handling
         print(f"Received image URL: {image_url}")
 
-        # Audio processing code remains the same
-        original_file_path = f"data/{file.filename}"
-        converted_file_path = f"data/converted_{file.filename}"
-
+        # Audio processing code
+        original_file_path = f"audio_inputs/{file.filename}"
+        converted_file_path = f"audio_inputs/converted_{file.filename}"
         with open(original_file_path, "wb") as buffer:
             buffer.write(await file.read())
 
@@ -126,31 +100,30 @@ async def post_audio(
         transcript = speech_to_text(converted_file_path)
         if transcript is None:
             raise HTTPException(status_code=500, detail="Error decoding audio")
-
-        # Use the multimodal response if image_url exists
-        if image_url:
-            print("Using multimodal response")
-            response = get_gpt_response_vlm(transcript, image_url)
-        else:
-            print("Using text-only response")
-            response = get_gpt_response(transcript)
-
+        # Response based on presence of image_url
+        response = get_gpt_response_vlm(transcript, image_url) if image_url else get_gpt_response(transcript)
         if response is None:
             raise HTTPException(status_code=500, detail="Error fetching GPT response")
-        else:
-            print(response)
-        
-        # Extract the stiffness matrix immediately after receiving the response
-        stiffness_matrix = extract_stiffness_matrix(response)
+        print(response)
+        # Attempt to extract stiffness matrix and handle None response safely
+        result = extract_stiffness_matrix(response)
+        stiffness_matrix, matrix_file_url, ellipsoid_plot_url = None, None, None
 
-        # Send stiffness matrix to the dedicated stiffness matrix server
-        matrix_url = None
-        if stiffness_matrix:
-            matrix_response = requests.post(
-                "https://stiffness-matrix-server.example.com/upload_stiffness_matrix",
-                json={"stiffness_matrix": stiffness_matrix}
-            )
-            matrix_url = matrix_response.json().get("matrix_url")
+        if result:
+            stiffness_matrix, matrix_file_url = result
+            print("matrix_file_url: ", matrix_file_url)
+            
+            if stiffness_matrix:
+                ellipsoid_plot_url = generate_ellipsoid_plot(stiffness_matrix)
+                print("ellipsoid_plot_url: ", ellipsoid_plot_url)
+        else:
+            print("No valid stiffness matrix found in the response.")
+
+        # Update conversation history based on available image URL
+        if image_url:
+            update_conversation_history_vlm(transcript, image_url, response)
+        else:
+            update_conversation_history(transcript, response)
 
         # Generate audio response
         audio_file_path = text_to_speech(response)
@@ -162,10 +135,15 @@ async def post_audio(
             with open(audio_file_path, mode="rb") as file_like:
                 yield from file_like
 
-        # Return streaming audio with matrix URL in headers
+        # Include URLs in response headers only if they are available
         response_headers = {}
-        if matrix_url:
-            response_headers["x-matrix-url"] = matrix_url
+        if matrix_file_url:
+            response_headers["x-matrix-url"] = matrix_file_url
+        if ellipsoid_plot_url:
+            response_headers["x-ellipsoid-url"] = ellipsoid_plot_url
+        print("Response Headers:", response_headers)
+
+        # Return the streaming response with the headers
         return StreamingResponse(iterfile(), media_type="audio/mpeg", headers=response_headers)
 
     except Exception as e:
@@ -173,10 +151,12 @@ async def post_audio(
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
+        # Clean up audio files
         if os.path.exists(original_file_path):
             os.remove(original_file_path)
         if os.path.exists(converted_file_path):
             os.remove(converted_file_path)
+
 
 @app.post("/upload_image")
 async def upload_image(file: UploadFile = File(...)):
@@ -199,7 +179,3 @@ async def upload_image(file: UploadFile = File(...)):
         print(f"Error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/generate_ellipsoid")
-async def generate_ellipsoid(stiffness_matrix: list):
-    filename = generate_ellipsoid_plot(stiffness_matrix)
-    return {"ellipsoid_url": f"https://ellipsoids-sunbird-dashing.ngrok-free.app/ellipsoids/{filename.split('/')[-1]}"}
