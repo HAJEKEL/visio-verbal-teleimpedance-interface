@@ -1,14 +1,13 @@
 import { useState } from "react";
 import Title from "./Title";
 import axios from "axios";
-import RecordMessage from "./RecordMessage";
 
 const Controller = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [imageURL, setImageURL] = useState<string | null>(null);
-  const [ellipsoidImageUrl, setEllipsoidImageUrl] = useState<string | null>(null); // State for the ellipsoid image URL
+  const [ellipsoidImageUrl, setEllipsoidImageUrl] = useState<string | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<any>(null);
 
   function createBlobURL(data: any) {
@@ -25,25 +24,21 @@ const Controller = () => {
 
   const handleCaptureImage = async () => {
     try {
-      // Capture the snapshot as a blob from the eye tracker
       const response = await axios.get("https://eye-tracker-sunbird-dashing.ngrok-free.app/capture_snapshot", {
         responseType: "blob",
       });
       const blob = response.data;
 
-      // Convert the blob into a File to send to the backend
       const file = new File([blob], "snapshot.jpg", { type: "image/jpeg" });
       const formData = new FormData();
       formData.append("file", file);
 
-      // Send the image file to the backend's upload endpoint
       const uploadResponse = await axios.post("https://summary-sunbird-dashing.ngrok-free.app/upload_image", formData, {
         timeout: 10000,
       });
       const uploadedImageURL = uploadResponse.data;
-      setImageURL(uploadedImageURL); // Store the backend URL for future use
+      setImageURL(uploadedImageURL);
 
-      // Add the image message to the chat history
       setMessages((prevMessages) => [
         ...prevMessages,
         { sender: "me", type: "image", imageUrl: uploadedImageURL },
@@ -88,51 +83,59 @@ const Controller = () => {
 
   const handleStop = async (blobUrl: string) => {
     setIsLoading(true);
-
+  
     const myMessage = { sender: "me", type: "audio", blobUrl };
     const messagesArr = [...messages, myMessage];
-
-    fetch(blobUrl)
-      .then((res) => res.blob())
-      .then(async (blob) => {
-        const formData = new FormData();
-        formData.append("file", blob, "myFile.wav");
-
-        if (imageURL) {
-          formData.append("image_url", imageURL);
-          setImageURL(null); // Clear imageURL after use
-        }
-
-        await axios
-          .post("https://summary-sunbird-dashing.ngrok-free.app/post_audio", formData, {
-            responseType: "json", // Changed to JSON since we expect a URL now
-          })
-          .then((res: any) => {
-            // Handle the audio response as usual
-            if (res.data.audio) {
-              const audioBlob = res.data.audio;
-              const audio = new Audio();
-              audio.src = createBlobURL(audioBlob);
-
-              const rachelMessage = { sender: "rachel", type: "audio", blobUrl: audio.src };
-              messagesArr.push(rachelMessage);
-              setMessages(messagesArr);
-
-              setIsLoading(false);
-              audio.play();
-            }
-
-            // Check if the response contains the URL for the ellipsoid plot
-            if (res.data.stiffness_ellipsoid_url) {
-              setEllipsoidImageUrl(res.data.stiffness_ellipsoid_url); // Update the ellipsoid image URL
-            }
-          })
-          .catch((err: any) => {
-            console.error(err);
-            setIsLoading(false);
-          });
+    setMessages(messagesArr);
+  
+    try {
+      const blob = await fetch(blobUrl).then((res) => res.blob());
+  
+      const formData = new FormData();
+      formData.append("file", blob, "myFile.wav");
+  
+      if (imageURL) {
+        formData.append("image_url", imageURL);
+        setImageURL(null); // Clear imageURL after use
+      }
+  
+      // Single axios call to post_audio endpoint
+      const audioResponse = await axios.post("https://summary-sunbird-dashing.ngrok-free.app/post_audio", formData, {
+        responseType: "json",
       });
+  
+      // Process the audio if available
+      if (audioResponse.data.audio) {
+        const audioBlob = new Blob([audioResponse.data.audio], { type: "audio/mpeg" });
+        const audioUrl = createBlobURL(audioBlob);
+  
+        const rachelMessage = { sender: "rachel", type: "audio", blobUrl: audioUrl };
+        messagesArr.push(rachelMessage);
+        setMessages(messagesArr);
+  
+        const audio = new Audio(audioUrl);
+        audio.play();
+      }
+  
+      // If a stiffness matrix is included, make a second request to generate the ellipsoid
+      if (audioResponse.data.stiffness_matrix) {
+        const ellipsoidResponse = await axios.post(
+          "https://summary-sunbird-dashing.ngrok-free.app/generate_ellipsoid",
+          { stiffness_matrix: audioResponse.data.stiffness_matrix }
+        );
+  
+        if (ellipsoidResponse.data.ellipsoid_url) {
+          setEllipsoidImageUrl(ellipsoidResponse.data.ellipsoid_url);
+        }
+      }
+  
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error processing audio or retrieving response:", err);
+      setIsLoading(false);
+    }
   };
+  
 
   return (
     <div className="flex h-screen overflow-y-hidden">
@@ -141,36 +144,31 @@ const Controller = () => {
 
         <div className="flex flex-col justify-between h-full overflow-y-scroll pb-96">
           <div className="mt-5 px-5">
-            {messages?.map((message, index) => {
-              return (
-                <div
-                  key={index + message.sender}
-                  className={
-                    "flex flex-col " +
-                    (message.sender === "rachel" && "flex items-end")
-                  }
-                >
-                  <div className="mt-4">
-                    <p
-                      className={
-                        message.sender === "rachel"
-                          ? "text-right mr-2 italic text-green-500"
-                          : "ml-2 italic text-blue-500"
-                      }
-                    >
-                      {message.sender}
-                    </p>
+            {messages?.map((message, index) => (
+              <div
+                key={index + message.sender}
+                className={"flex flex-col " + (message.sender === "rachel" && "items-end")}
+              >
+                <div className="mt-4">
+                  <p
+                    className={
+                      message.sender === "rachel"
+                        ? "text-right mr-2 italic text-green-500"
+                        : "ml-2 italic text-blue-500"
+                    }
+                  >
+                    {message.sender}
+                  </p>
 
-                    {/* Display audio or image based on message type */}
-                    {message.type === "audio" ? (
-                      <audio src={message.blobUrl} className="appearance-none" controls />
-                    ) : message.type === "image" ? (
-                      <img src={message.imageUrl} alt="Captured Snapshot" className="w-48 h-auto mt-2" />
-                    ) : null}
-                  </div>
+                  {/* Display audio or image based on message type */}
+                  {message.type === "audio" ? (
+                    <audio src={message.blobUrl} className="appearance-none" controls />
+                  ) : message.type === "image" ? (
+                    <img src={message.imageUrl} alt="Captured Snapshot" className="w-48 h-auto mt-2" />
+                  ) : null}
                 </div>
-              );
-            })}
+              </div>
+            ))}
 
             {messages.length === 0 && !isLoading && (
               <div className="text-center font-light italic mt-10">

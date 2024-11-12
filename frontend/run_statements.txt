@@ -6,3 +6,6 @@ This will change the port from 4173 to 5173
 
 ngrok
 ngrok http --domain=summary-sunbird-dashing.ngrok-free.app 5173
+
+cd vite
+yarn dev
