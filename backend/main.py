@@ -31,6 +31,14 @@ from functions.ellipsoid_plot import generate_ellipsoid_plot
 from fastapi.staticfiles import StaticFiles
 # For unique file names
 from uuid import uuid4
+# Send asynchronous HTTP POST requests to the webhook URLs
+import aiohttp
+# For type hinting
+from urllib.parse import urlparse
+# For type hinting
+from typing import List
+
+
 
 # Initiate app
 app = FastAPI()
@@ -51,6 +59,36 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["x-matrix-url", "x-ellipsoid-url"]
 )
+
+# Store registered webhook URLs
+webhook_urls: List[str] = []
+
+
+
+@app.post("/register_webhook")
+async def register_webhook(webhook_url: str):
+    """
+    Registers a webhook URL if it is valid and not already registered.
+
+    Args:
+        webhook_url (str): The URL to register as a webhook.
+
+    Returns:
+        dict: Confirmation message about the registration status.
+    """
+    # Validate the webhook URL
+    parsed_url = urlparse(webhook_url)
+    if not parsed_url.scheme or not parsed_url.netloc:
+        raise HTTPException(status_code=400, detail="Invalid webhook URL")
+    
+    # Add the webhook URL if it's not already registered
+    if webhook_url not in webhook_urls:
+        webhook_urls.append(webhook_url)
+        print(webhook_urls)
+        return {"message": f"Webhook registered successfully: {webhook_url}"}
+
+    return {"message": f"Webhook already registered: {webhook_url}"}
+
 
 @app.get("/")
 async def root():
@@ -112,8 +150,14 @@ async def post_audio(
         if result:
             stiffness_matrix, matrix_file_url = result
             print("matrix_file_url: ", matrix_file_url)
-            
             if stiffness_matrix:
+                async with aiohttp.ClientSession() as session:
+                    for webhook_url in webhook_urls:
+                        try:
+                            await session.post(webhook_url, json=stiffness_matrix)  # Send the matrix directly
+                            print(f"Successfully notified webhook: {webhook_url}")
+                        except Exception as e:
+                            print(f"Failed to notify webhook {webhook_url}: {e}")
                 ellipsoid_plot_url = generate_ellipsoid_plot(stiffness_matrix)
                 print("ellipsoid_plot_url: ", ellipsoid_plot_url)
         else:
