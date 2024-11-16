@@ -26,6 +26,7 @@ from functions.openai_vlm import get_gpt_response_vlm
 from functions.database import update_conversation_history_vlm
 from functions.stiffness_extractor import extract_stiffness_matrix
 from functions.ellipsoid_plot import generate_ellipsoid_plot
+from functions.image_utils import smart_crop  # Import the smart_crop function
 
 # Make a static folder to send images to openai
 from fastapi.staticfiles import StaticFiles
@@ -207,14 +208,24 @@ async def upload_image(file: UploadFile = File(...)):
     try:
         if not os.path.exists("images"):
             os.makedirs("images")
+        
         # Generate a unique filename
         file_extension = file.filename.split(".")[-1]
         unique_filename = f"{uuid4()}.{file_extension}"
-        file_path = f"images/{unique_filename}"
-        # Save the file to the static/images folder
-        with open(file_path, "wb") as buffer:
+        temp_path = f"images/temp_{unique_filename}"
+        final_path = f"images/{unique_filename}"
+        
+        # Save the uploaded file temporarily
+        with open(temp_path, "wb") as buffer:
             buffer.write(await file.read())
-        # Generate the file URL using your ngrok domain
+        
+        # Apply smart cropping and save the final image
+        smart_crop(temp_path, final_path)
+        
+        # Remove the temporary file
+        os.remove(temp_path)
+
+        # Generate the file URL
         file_url = f"https://images-sunbird-dashing.ngrok-free.app/images/{unique_filename}"
         print(file_url)
         return file_url
@@ -222,4 +233,3 @@ async def upload_image(file: UploadFile = File(...)):
     except Exception as e:
         print(f"Error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
