@@ -44,12 +44,20 @@ from typing import List
 # Initiate app
 app = FastAPI()
 # CORS origins that are allowed to connect to this server
-origins = ["https://summary-sunbird-dashing.ngrok-free.app",
-    "https://images-sunbird-dashing.ngrok-free.app",
-    "https://frontend-example.ngrok-free.app",
-    "https://ellipsoids-sunbird-dashing.ngrok-free.app",
-    "https://stiffness-matrix-server.example.com" # Stiffness matrix server
+origins = [
+    "http://localhost:8000",        # Backend server
+    "http://127.0.0.1:8000",        # Backend server (127.0.0.1)
+    "https://images-sunbird-dashing.ngrok-free.app",  # Image server (ngrok)
+    "http://localhost:5174",        # Frontend
+    "http://127.0.0.1:5174",        # Frontend (127.0.0.1)
+    "http://localhost:8002",        # Ellipsoid server
+    "http://127.0.0.1:8002",        # Ellipsoid server (127.0.0.1)
+    "http://localhost:8003",        # Stiffness matrix server
+    "http://127.0.0.1:8003",        # Stiffness matrix server (127.0.0.1)
+    "http://localhost:8080",        # Sigma.7 server
+    "http://127.0.0.1:8080"         # Sigma.7 server (127.0.0.1)
 ]
+
 
 # Add CORS middleware to the app
 app.add_middleware(

@@ -24,6 +24,4 @@ RUN curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
 # Copy the .env file into the container
 COPY .env /app/.env
 
-# Expose the application port (optional, depending on your app)
-EXPOSE 3000
-EXPOSE 5173
+

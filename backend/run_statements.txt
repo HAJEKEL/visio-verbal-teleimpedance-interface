@@ -70,3 +70,7 @@ uvicorn ellipsoid_server:app --host 0.0.0.0 --port 8002 --reload
 
 matrix server:
 uvicorn matrices_server:app --host 0.0.0.0 --port 8003 --reload
+
+
+# localhost version of the interface
+uvicorn main_localhost:app --reload
