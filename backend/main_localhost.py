@@ -48,8 +48,8 @@ origins = [
     "http://localhost:8000",        # Backend server
     "http://127.0.0.1:8000",        # Backend server (127.0.0.1)
     "https://images-sunbird-dashing.ngrok-free.app",  # Image server (ngrok)
-    "http://localhost:5174",        # Frontend
-    "http://127.0.0.1:5174",        # Frontend (127.0.0.1)
+    "http://localhost:5173",        # Frontend
+    "http://127.0.0.1:5173",        # Frontend (127.0.0.1)
     "http://localhost:8002",        # Ellipsoid server
     "http://127.0.0.1:8002",        # Ellipsoid server (127.0.0.1)
     "http://localhost:8003",        # Stiffness matrix server
@@ -188,10 +188,12 @@ async def post_audio(
         ).global_args('-loglevel', 'error', '-hide_banner').run()
 
         transcript = speech_to_text(converted_file_path)
+        print(transcript)
         if transcript is None:
             raise HTTPException(status_code=500, detail="Error decoding audio")
         # Response based on presence of image_url
         response = get_gpt_response_vlm(transcript, image_url) if image_url else get_gpt_response(transcript)
+        print(response)
         if response is None:
             raise HTTPException(status_code=500, detail="Error fetching GPT response")
         print(response)
