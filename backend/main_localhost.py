@@ -45,8 +45,6 @@ from typing import List
 app = FastAPI()
 # CORS origins that are allowed to connect to this server
 origins = [
-    "http://localhost:8000",        # Backend server
-    "http://127.0.0.1:8000",        # Backend server (127.0.0.1)
     "https://images-sunbird-dashing.ngrok-free.app",  # Image server (ngrok)
     "http://localhost:5173",        # Frontend
     "http://127.0.0.1:5173",        # Frontend (127.0.0.1)

@@ -102,7 +102,7 @@ RUN pip3 install --no-cache-dir --upgrade pip && pip3 install --no-cache-dir -r 
 COPY . /app
 
 # Make port 8000 available to the world outside this container
-# EXPOSE 8000
+#EXPOSE 8000
 
 # Run the application and save ngrok URL to a file
 # CMD ["sh", "-c", "ngrok http 8000 > ngrok_url.txt & uvicorn main:app --reload"]

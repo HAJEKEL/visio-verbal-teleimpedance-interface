@@ -5,6 +5,7 @@
 		"dockerfile": "../Dockerfile"
 	},
 	"runArgs": [
+		"--network=host",
 		"--device",
 		"/dev/snd",
 		"-v",
