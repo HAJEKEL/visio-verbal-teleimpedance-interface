@@ -1,32 +1,84 @@
-services: # Define the services that make up your app
-  backend: # Define the backend service
-    build: # build the backend service using the Dockerfile in the ./backend directory
+version: '3.9'
+
+networks:
+  visio_network:
+    driver: bridge
+  kuka_network:
+    driver: macvlan
+    driver_opts:
+      parent: enp0s31f6  # Replace with your actual Ethernet interface on the host
+    ipam:
+      config:
+        - subnet: 192.180.1.0/24
+
+services:
+  backend:
+    build:
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: backend-container
-    ports: 
-      - "8000:8000"  # Expose the backend service on port 5000
-    environment:
-      - ENV_VAR_NAME=value  # Add any environment variables your backend needs
+    ports:
+      - "8001:8001"  # Only expose port 8001 to the host
+    command: >
+      bash -c "
+      uvicorn main_oop:app --host 0.0.0.0 --port 8000 --reload &
+      uvicorn static_server:app --host 0.0.0.0 --port 8001 --reload
+      "
     volumes:
-      - ./backend:/app  # Bind mount your backend source code for development
+      - ./backend:/app
+    working_dir: /app
     networks:
-      - app-network # Connect the backend service to the app-network
+      - visio_network
+    profiles:
+      - backend
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: frontend-container
     ports:
-      - "3000:3000"  # Expose the frontend service on port 3000
-    environment:
-      - ENV_VAR_NAME=value  # Add any environment variables your frontend needs
+      - "5173:5173"  # Expose port 5173 for ngrok or external access
+    command: >
+      bash -c "
+      cd vite && yarn dev --host
+      "
     volumes:
-      - ./frontend:/app  # Bind mount your frontend source code for development
+      - ./frontend:/app
+    working_dir: /app
     networks:
-      - app-network
+      - visio_network
+    profiles:
+      - frontend
 
-networks:
-  app-network:
-    driver: bridge
+  sigma7:
+    build:
+      context: ./sigma7
+    command: >
+      bash -c "
+      cd /workspaces/sigma7/sdk-3.7.3/bin && ./autoinit &&
+      cd /workspaces/sigma7/codes/teleimpedance/bin/Debug && ./teleimpedance
+      "
+    volumes:
+      - ./sigma7:/workspace
+    working_dir: /workspace
+    cap_add:
+      - NET_ADMIN  # Allow network management for running configure_network.sh
+    networks:
+      - kuka_network  # Connect to the physical network
+      - visio_network  # Connect to the Docker internal network
+    profiles:
+      - sigma7
+
+  tobii_connect:
+    build:
+      context: ./tobii_connect
+    # ports:
+    #   - "8011:8011"  # Expose only if needed for ngrok or external access
+    command: >
+      bash -c "
+      uvicorn capture:app --host 0.0.0.0 --port 8011 --reload
+      "
+    volumes:
+      - ./tobii_connect:/app
+    working_dir: /app
+    networks:
+      - visio_network
+    profiles:
+      - tobii
