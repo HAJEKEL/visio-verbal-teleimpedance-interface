@@ -1,0 +1,6 @@
+[submodule "tobii_connect"]
+	path = tobii_connect
+	url = git@github.com:HAJEKEL/tobii_connect.git
+[submodule "sigma7"]
+	path = sigma7
+	url = git@github.com:HAJEKEL/sigma7.git

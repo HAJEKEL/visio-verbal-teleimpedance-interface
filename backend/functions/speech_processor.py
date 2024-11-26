@@ -7,6 +7,7 @@ import logging
 import requests
 import re
 from pathlib import Path
+import ffmpeg
 
 # Speech Recognition Imports
 from vosk import Model, KaldiRecognizer, SetLogLevel

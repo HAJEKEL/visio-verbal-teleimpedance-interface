@@ -1,0 +1,28 @@
+{
+    "environments": {
+        "local": {
+            "cors_urls": [
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:5174",
+                "http://127.0.0.1:5174",
+                "http://localhost:8001",
+                "http://127.0.0.1:8001"
+            ],
+            "server_urls": {
+                "image_server": "http://127.0.0.1:8001",
+                "stiffness_matrix_server": "http://127.0.0.1:8003"
+            }
+        },
+        "public": {
+            "cors_urls": [
+                "https://frontend-example.ngrok-free.app",
+                "https://images-sunbird-dashing.ngrok-free.app"
+            ],
+            "server_urls": {
+                "image_server": "https://images-sunbird-dashing.ngrok-free.app",
+                "stiffness_matrix_server": "https://stiffness-matrix-server.example.com"
+            }
+        }
+    }
+}

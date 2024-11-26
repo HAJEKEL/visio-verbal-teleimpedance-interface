@@ -114,20 +114,20 @@ async def list_webhooks():
 async def upload_image(file: UploadFile = File(...)):
     file_url = await image_processor.process_uploaded_image(file, base_url)
     if file_url:
+        print(file_url)
         return {"file_url": file_url}
     else:
         raise HTTPException(status_code=500, detail="Image processing failed")
-
-
 
 @app.post("/post_audio")
 async def post_audio(
     file: UploadFile = File(...),
     image_url: str = Form(None)
 ):
+    converted_audio_file_path = None   # Initialize the variable for the finally block
     try:
-        converted_audio_file_path = speech_processor.convert_file_path(original_file_path)
-        transcript = speech_processor.speech_to_text(converted_file_path)
+        converted_audio_file_path = await speech_processor.convert_audio_format(file)
+        transcript = speech_processor.speech_to_text(converted_audio_file_path)
         if transcript is None:
             raise HTTPException(status_code=500, detail="Error decoding audio")
         # Response based on presence of image_url
@@ -187,11 +187,8 @@ async def post_audio(
 
     finally:
         # Clean up audio files
-        if os.path.exists(original_file_path):
-            os.remove(original_file_path)
-        if os.path.exists(converted_file_path):
-            os.remove(converted_file_path)
-
+        if converted_audio_file_path and os.path.exists(converted_audio_file_path):
+            os.remove(converted_audio_file_path)
 
 
 
