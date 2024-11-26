@@ -5,7 +5,7 @@ import logging
 # Set up logging configuration
 logging.basicConfig(level=logging.INFO)
 
-class ConversationManager:
+class ConversationHistoryProcessor:
     """
     A class to manage conversation history for a torque-controlled robot interface.
     """
@@ -109,7 +109,7 @@ class ConversationManager:
 
     def __init__(self):
         """
-        Initializes the ConversationManager and ensures the conversation history file exists.
+        Initializes the ConversationHistoryProcessor and ensures the conversation history file exists.
         """
         self.conversation_history_file = self.CONVERSATION_HISTORY_FILE
         self.system_role_content = self.SYSTEM_ROLE_CONTENT
@@ -189,8 +189,8 @@ class ConversationManager:
         return "Conversation history has been reset."
 
 if __name__ == "__main__":
-    # Create an instance of ConversationManager
-    conv_manager = ConversationManager()
+    # Create an instance of ConversationHistoryProcessor
+    conv_manager = ConversationHistoryProcessor()
 
     # Test updating conversation history without an image
     transcription = "Adjust the stiffness matrix for the new task."

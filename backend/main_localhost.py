@@ -48,6 +48,8 @@ origins = [
     "https://images-sunbird-dashing.ngrok-free.app",  # Image server (ngrok)
     "http://localhost:5173",        # Frontend
     "http://127.0.0.1:5173",        # Frontend (127.0.0.1)
+    "http://localhost:5174",        # Frontend
+    "http://127.0.0.1:5174",        # Frontend (127.0.0.1)
     "http://localhost:8002",        # Ellipsoid server
     "http://127.0.0.1:8002",        # Ellipsoid server (127.0.0.1)
     "http://localhost:8003",        # Stiffness matrix server

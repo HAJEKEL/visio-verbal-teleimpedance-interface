@@ -1,55 +1,47 @@
-# uvicorn main:app  # uvicorn main:app --reload
-# audio format: wav
-import ffmpeg
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-import requests
-import json
-
-os.environ["VOSK_LOG_LEVEL"] = "-1"  # Disable all Vosk logs
-
-# main imports
-from fastapi import BackgroundTasks
-from fastapi.responses import FileResponse
+import aiohttp
+import logging
+from uuid import uuid4
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from decouple import config
-
-# Custom function imports
-from functions.vosk_stt import speech_to_text
-from functions.openai_response_tts import get_gpt_response, text_to_speech
-from functions.database import update_conversation_history, reset_conversation_history
-from functions.tts_play_directly import text_to_speech_play_directly
-from functions.openai_vlm import get_gpt_response_vlm
-from functions.database import update_conversation_history_vlm
-from functions.stiffness_extractor import extract_stiffness_matrix
-from functions.ellipsoid_plot import generate_ellipsoid_plot
-from functions.image_utils import smart_crop  # Import the smart_crop function
-
-# Make a static folder to send images to openai
-from fastapi.staticfiles import StaticFiles
-# For unique file names
-from uuid import uuid4
-# Send asynchronous HTTP POST requests to the webhook URLs
-import aiohttp
-# For type hinting
 from urllib.parse import urlparse
-# For type hinting
-from typing import List
 
+# Import classes from modules
+from functions.speech_processor import SpeechProcessor
+from functions.conversation_history_processor import ConversationHistoryProcessor
+from functions.stiffness_matrix_processor import StiffnessMatrixProcessor
+from functions.image_processor import ImageProcessor
+from functions.webhook_processor import WebhookProcessor
 
+# Set up logging configuration
+logging.basicConfig(level=logging.INFO)
+# Disable all Vosk logs
+os.environ["VOSK_LOG_LEVEL"] = "-1"  
 
 # Initiate app
 app = FastAPI()
 # CORS origins that are allowed to connect to this server
-origins = ["https://summary-sunbird-dashing.ngrok-free.app",
+# CORS configuration
+origins = [
+    "https://summary-sunbird-dashing.ngrok-free.app",
     "https://images-sunbird-dashing.ngrok-free.app",
     "https://frontend-example.ngrok-free.app",
     "https://ellipsoids-sunbird-dashing.ngrok-free.app",
-    "https://stiffness-matrix-server.example.com" # Stiffness matrix server
+    "https://stiffness-matrix-server.example.com",  # Stiffness matrix server
+    "http://localhost:5173",        # Frontend
+    "http://127.0.0.1:5173",        # Frontend (127.0.0.1)
+    "http://localhost:5174",        # Frontend
+    "http://127.0.0.1:5174",        # Frontend (127.0.0.1)
+    "http://localhost:8002",        # Ellipsoid server
+    "http://127.0.0.1:8002",        # Ellipsoid server (127.0.0.1)
+    "http://localhost:8003",        # Stiffness matrix server
+    "http://127.0.0.1:8003",        # Stiffness matrix server (127.0.0.1)
+    "http://localhost:8080",        # Sigma.7 server
+    "http://127.0.0.1:8080"         # Sigma.7 server (127.0.0.1)
 ]
+
 
 # Add CORS middleware to the app
 app.add_middleware(
@@ -61,104 +53,72 @@ app.add_middleware(
     expose_headers=["x-matrix-url", "x-ellipsoid-url"]
 )
 
-# Store registered webhook URLs
-webhook_urls: List[str] = []
+
+# Create instances of the classes
+speech_processor = SpeechProcessor()
+conversation_history_processor = ConversationHistoryProcessor()
+stiffness_matrix_processor = StiffnessMatrixProcessor(use_public_urls=False)
+image_processor = ImageProcessor()
+webhook_processor = WebhookProcessor()
 
 
+base_url = "https://images-sunbird-dashing.ngrok-free.app"  # Update with your actual base URL
+
+@app.get("/")
+async def root():
+    """
+    Root endpoint.
+    """
+    return {"message": "This is the root of the visio-verbal teleimpedance backend"}
+
+@app.get("/reset")
+async def reset():
+    """
+    Resets the conversation history.
+    """
+    return conversation_manager.reset_conversation_history()
 
 @app.post("/register_webhook")
 async def register_webhook(webhook_url: str):
     """
     Registers a webhook URL if it is valid and not already registered.
-
-    Args:
-        webhook_url (str): The URL to register as a webhook.
-
-    Returns:
-        dict: Confirmation message about the registration status.
     """
-    # Validate the webhook URL
-    parsed_url = urlparse(webhook_url)
-    if not parsed_url.scheme or not parsed_url.netloc:
-        raise HTTPException(status_code=400, detail="Invalid webhook URL")
-    
-    # Add the webhook URL if it's not already registered
-    if webhook_url not in webhook_urls:
-        webhook_urls.append(webhook_url)
-        print(webhook_urls)
-        return {"message": f"Webhook registered successfully: {webhook_url}"}
-
-    return {"message": f"Webhook already registered: {webhook_url}"}
+    try:
+        message = webhook_manager.register_webhook(webhook_url)
+        return {"message": message}
+    except HTTPException as e:
+        logging.error(f"Error registering webhook: {e.detail}")
+        raise e
 
 @app.post("/unregister_webhook")
 async def unregister_webhook(webhook_url: str):
     """
     Unregisters a webhook URL if it is currently registered.
-
-    Args:
-        webhook_url (str): The URL to unregister.
-
-    Returns:
-        dict: Confirmation message about the unregistration status.
     """
-    # Validate the webhook URL
-    parsed_url = urlparse(webhook_url)
-    if not parsed_url.scheme or not parsed_url.netloc:
-        raise HTTPException(status_code=400, detail="Invalid webhook URL")
-    
-    # Remove the webhook URL if it's registered
-    if webhook_url in webhook_urls:
-        webhook_urls.remove(webhook_url)
-        print(webhook_urls)
-        return {"message": f"Webhook unregistered successfully: {webhook_url}"}
-    
-    raise HTTPException(status_code=404, detail="Webhook URL not found")
+    try:
+        message = webhook_manager.unregister_webhook(webhook_url)
+        return {"message": message}
+    except HTTPException as e:
+        logging.error(f"Error unregistering webhook: {e.detail}")
+        raise e
 
 @app.get("/list_webhooks")
 async def list_webhooks():
     """
     Lists all currently registered webhook URLs.
-
-    Returns:
-        dict: A dictionary containing the list of registered webhook URLs.
     """
-    return {"registered_webhooks": webhook_urls}
+    webhooks = webhook_manager.list_webhooks()
+    return {"registered_webhooks": webhooks}
 
-@app.get("/list_webhooks")
-async def list_webhooks():
-    """
-    Lists all currently registered webhook URLs.
+@app.post("/upload_image")
+async def upload_image(file: UploadFile = File(...)):
+    file_url = await image_processor.process_uploaded_image(file, base_url)
+    if file_url:
+        return {"file_url": file_url}
+    else:
+        raise HTTPException(status_code=500, detail="Image processing failed")
 
-    Returns:
-        dict: A dictionary containing the list of registered webhook URLs.
-    """
-    return {"registered_webhooks": webhook_urls}
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@app.get("/health")
-async def check_health():
-    return {"status": "ok"}
-
-@app.get("/reset")
-async def reset():
-    return reset_conversation_history()
-
-@app.get("/get_audio")
-async def get_audio():
-    audio_file = "audio_inputs/voice.wav"
-    transcript = speech_to_text(audio_file)
-    print(transcript)
-    if transcript is None:
-        raise HTTPException(status_code=500, detail="Error decoding audio")
-    response = get_gpt_response(transcript)
-    print(response)
-    if response is None:
-        raise HTTPException(status_code=500, detail="Error fetching GPT response")
-    update_conversation_history(transcript, response)
-    text_to_speech_play_directly(response)
 
 @app.post("/post_audio")
 async def post_audio(
@@ -166,29 +126,16 @@ async def post_audio(
     image_url: str = Form(None)
 ):
     try:
-        # Image URL handling
-        print(f"Received image URL: {image_url}")
-
-        # Audio processing code
-        original_file_path = f"audio_inputs/{file.filename}"
-        converted_file_path = f"audio_inputs/converted_{file.filename}"
-        with open(original_file_path, "wb") as buffer:
-            buffer.write(await file.read())
-
-        ffmpeg.input(original_file_path).output(
-            converted_file_path, ac=1, ar=16000
-        ).global_args('-loglevel', 'error', '-hide_banner').run()
-
-        transcript = speech_to_text(converted_file_path)
+        converted_audio_file_path = speech_processor.convert_file_path(original_file_path)
+        transcript = speech_processor.speech_to_text(converted_file_path)
         if transcript is None:
             raise HTTPException(status_code=500, detail="Error decoding audio")
         # Response based on presence of image_url
-        response = get_gpt_response_vlm(transcript, image_url) if image_url else get_gpt_response(transcript)
+        response = speech_processor.get_gpt_response_vlm(transcript, image_url) if image_url else speech_processor.get_gpt_response_vlm(transcript)
         if response is None:
             raise HTTPException(status_code=500, detail="Error fetching GPT response")
-        print(response)
         # Attempt to extract stiffness matrix and handle None response safely
-        result = extract_stiffness_matrix(response)
+        result = stiffness_matrix_processor.extract_stiffness_matrix(response)
         stiffness_matrix, matrix_file_url, ellipsoid_plot_url = None, None, None
 
         if result:
@@ -202,19 +149,19 @@ async def post_audio(
                             print(f"Successfully notified webhook: {webhook_url}")
                         except Exception as e:
                             print(f"Failed to notify webhook {webhook_url}: {e}")
-                ellipsoid_plot_url = generate_ellipsoid_plot(stiffness_matrix)
+                ellipsoid_plot_url = stiffness_matrix_processor.generate_ellipsoid_plot(stiffness_matrix)
                 print("ellipsoid_plot_url: ", ellipsoid_plot_url)
         else:
             print("No valid stiffness matrix found in the response.")
 
         # Update conversation history based on available image URL
         if image_url:
-            update_conversation_history_vlm(transcript, image_url, response)
+            conversation_history_processor.update_conversation_history(transcript, image_url, response)
         else:
-            update_conversation_history(transcript, response)
+            conversation_history_processor.update_conversation_history(transcript, response)
 
         # Generate audio response
-        audio_file_path = text_to_speech(response)
+        audio_file_path = speech_processor.text_to_speech(response)
         if not audio_file_path or not os.path.exists(audio_file_path):
             raise HTTPException(status_code=400, detail="Failed to generate audio")
 
@@ -246,33 +193,5 @@ async def post_audio(
             os.remove(converted_file_path)
 
 
-@app.post("/upload_image")
-async def upload_image(file: UploadFile = File(...)):
-    try:
-        if not os.path.exists("images"):
-            os.makedirs("images")
-        
-        # Generate a unique filename
-        file_extension = file.filename.split(".")[-1]
-        unique_filename = f"{uuid4()}.{file_extension}"
-        temp_path = f"images/temp_{unique_filename}"
-        final_path = f"images/{unique_filename}"
-        
-        # Save the uploaded file temporarily
-        with open(temp_path, "wb") as buffer:
-            buffer.write(await file.read())
-        
-        # Apply smart cropping and save the final image
-        smart_crop(temp_path, final_path)
-        
-        # Remove the temporary file
-        os.remove(temp_path)
 
-        # Generate the file URL
-        file_url = f"https://images-sunbird-dashing.ngrok-free.app/images/{unique_filename}"
-        print(file_url)
-        return file_url
 
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
