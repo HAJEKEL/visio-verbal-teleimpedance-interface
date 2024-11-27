@@ -21,7 +21,15 @@ RUN curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
     && apt-get update \
     && apt-get install -y ngrok
 
+# Install sudo and configure the 'node' user for passwordless sudo
+RUN apt-get update \
+    && apt-get install -y sudo \
+    && echo "node ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/node \
+    && chmod 0440 /etc/sudoers.d/node \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch to the non-root 'node' user
+USER node
+
 # Copy the .env file into the container
 COPY .env /app/.env
-
-

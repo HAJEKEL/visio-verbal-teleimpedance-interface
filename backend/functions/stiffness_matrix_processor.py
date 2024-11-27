@@ -47,8 +47,8 @@ class StiffnessMatrixProcessor:
             self.ellipsoids_base_url = 'https://ellipsoids-sunbird-dashing.ngrok-free.app'
         else:
             # Use localhost or provided base URLs
-            self.matrices_base_url = matrices_base_url or 'http://localhost'
-            self.ellipsoids_base_url = ellipsoids_base_url or 'http://localhost'
+            self.matrices_base_url = matrices_base_url or 'http://localhost:8003'
+            self.ellipsoids_base_url = ellipsoids_base_url or 'http://localhost:8003'
 
         # Ensure base URLs do not have trailing slashes
         self.matrices_base_url = self.matrices_base_url.rstrip('/')

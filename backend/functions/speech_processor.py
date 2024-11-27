@@ -209,19 +209,28 @@ class SpeechProcessor:
 
         Parameters:
             text (str): The text to convert to speech.
-            output_file (str): Path to save the audio file.
 
         Returns:
-            bool: True if successful, False otherwise.
+            str: Path to the generated audio file, or False if an error occurred.
         """
         try:
+            import re
+            import os
+
             # Define pattern to locate the stiffness matrix
             stiffness_pattern = r"### Stiffness Matrix(?: \(Recommended Values\))?(?:\n|.)*"
             
             # Filter out the stiffness matrix part from the response text
             filtered_text = re.sub(stiffness_pattern, "", text).strip()
-            client=self.client
+
+            # If nothing remains after filtering, set a default message
+            if not filtered_text:
+                filtered_text = (
+                    "The stiffness matrix has been adjusted. These are the stiffness matrix and stiffness ellipsoid."
+                )
+
             # Initiate OpenAI client to generate TTS audio with filtered text
+            client = self.client
             response = client.audio.speech.create(
                 model="tts-1",
                 voice="alloy",
@@ -236,6 +245,7 @@ class SpeechProcessor:
         except Exception as e:
             logging.error(f"Error in text_to_speech: {e}")
             return False
+
 
 if __name__ == "__main__":
     # Create an instance of SpeechProcessor
