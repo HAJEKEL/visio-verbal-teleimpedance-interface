@@ -1,14 +1,13 @@
 import axios from "axios";
 
-const EYE_TRACKER_URL = "http://localhost:8011";
 const BACKEND_URL = "http://localhost:8000";
 
 export const calibrate = () => {
-    return axios.get(`${EYE_TRACKER_URL}/calibrate`);
+    return axios.get(`${BACKEND_URL}/calibrate`);
 };
 
 export const captureSnapshot = async () => {
-    const response = await axios.get(`${EYE_TRACKER_URL}/capture_snapshot`, {
+    const response = await axios.get(`${BACKEND_URL}/capture_snapshot`, {
         responseType: "blob",
     });
     return response.data;

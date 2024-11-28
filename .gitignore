@@ -3,3 +3,7 @@ __pycache__
 frontend/node_modules/
 backend/images
 backend/static/images
+frontend/__pycache__/
+backend/__pycache__/
+tobii_connect/__pycache__/
+
