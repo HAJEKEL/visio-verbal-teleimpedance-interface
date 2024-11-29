@@ -1,9 +1,13 @@
 import os
+import sys
 import aiohttp
 import logging
+from typing import List
+from dotenv import load_dotenv, find_dotenv
 from uuid import uuid4
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 
@@ -15,9 +19,32 @@ from functions.image_processor import ImageProcessor
 from functions.webhook_processor import WebhookProcessor
 from functions.eye_tracker_processor import EyeTrackerProcessor
 
+# Load environment variables from .env file if not already set
+dotenv_path = find_dotenv()
+if dotenv_path:
+    load_dotenv(dotenv_path, override=False)
+
+# Retrieve the required environment variables
+try:
+    # Required variables
+    ALLOWED_ORIGINS = os.environ['ALLOWED_ORIGINS']
+    EYE_TRACKER_URL = os.environ['EYE_TRACKER_URL']
+    BASE_URL = os.environ['BASE_URL']
+    ENVIRONMENT = os.environ.get('ENVIRONMENT', 'local')
+    LOG_LEVEL = os.environ['LOG_LEVEL']
+
+except KeyError as e:
+    logging.error(f"Environment variable {e.args[0]} is not set.")
+    sys.exit(1)
+
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL").upper(),
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 class TeleimpedanceBackend:
-    def __init__(self, environment: str, base_url: str, config_path: Optional[str] = None):
+    def __init__(self, environment: str, base_url: str, allowed_origins: List[str], eye_tracker_url: str, log_level:str):
         """
         Initializes the backend with the specified environment and base URL.
 
@@ -25,17 +52,15 @@ class TeleimpedanceBackend:
         :param base_url: The base URL for image and matrix services.
         :param config_path: Path to an optional JSON configuration file.
         """
+        self.log_level = log_level.upper()
         self.environment = environment
         self.base_url = base_url
-
+        self.origins = allowed_origins
+        self.eye_tracker_url = eye_tracker_url
         # Initialize FastAPI app
         self.app = FastAPI()
 
         # Set up CORS
-        self.origins = [
-            "http://localhost:5173", # Frontend
-            "http://127.0.0.1:5173"
-        ]
         self.setup_cors()
 
         # Initialize processors
@@ -44,12 +69,12 @@ class TeleimpedanceBackend:
         self.stiffness_matrix_processor = StiffnessMatrixProcessor(use_public_urls=False)
         self.image_processor = ImageProcessor()
         self.webhook_processor = WebhookProcessor()
-        self.eye_tracker_processor = EyeTrackerProcessor(eye_tracker_url="http://localhost:8011")
+        self.eye_tracker_processor = EyeTrackerProcessor(eye_tracker_url=eye_tracker_url)
         self.webhook_urls = []  # Placeholder for webhook URLs
 
         # Set up routes
         self.setup_routes()
-
+            
     def setup_cors(self):
         """
         Sets up CORS middleware.
@@ -67,19 +92,33 @@ class TeleimpedanceBackend:
         """
         Sets up the routes for the application.
         """
-        self.app.get("/")(self.root)
+        self.app.get("/", response_class=HTMLResponse)(self.root)
         self.app.get("/reset")(self.reset)
         self.app.post("/register_webhook")(self.register_webhook)
         self.app.post("/unregister_webhook")(self.unregister_webhook)
         self.app.get("/list_webhooks")(self.list_webhooks)
         self.app.post("/upload_image")(self.upload_image)
         self.app.post("/post_audio")(self.post_audio)
+        self.app.get("/calibrate")(self.calibrate)
+        self.app.get("/capture_snapshot")(self.capture_snapshot)
 
     async def root(self):
         """
-        Root endpoint.
+        Root endpoint providing an HTML overview of the backend API.
         """
-        return {"message": "This is the root of the visio-verbal teleimpedance backend"}
+        # Define the path to the HTML file
+        html_file_path = os.path.join(os.path.dirname(__file__), "templates", "main_root_page.html")
+        
+        # Read the HTML content
+        try:
+            with open(html_file_path, "r", encoding="utf-8") as file:
+                html_content = file.read()
+        except FileNotFoundError:
+            return HTMLResponse(content="<h1>Error: root_page.html not found</h1>", status_code=500)
+        except Exception as e:
+            return HTMLResponse(content=f"<h1>Error: {e}</h1>", status_code=500)
+
+        return HTMLResponse(content=html_content)
 
     async def reset(self):
         """
@@ -138,7 +177,6 @@ class TeleimpedanceBackend:
         """
         return await self.eye_tracker_processor.capture_snapshot()
 
-    
     async def post_audio(self, file: UploadFile, image_url: Optional[str] = Form(None)):
         """
         Processes uploaded audio and generates a response.
@@ -205,6 +243,11 @@ class TeleimpedanceBackend:
                 os.remove(converted_audio_file_path)
 
 
-# Instantiate and expose the app
-backend = TeleimpedanceBackend(environment="local", base_url="https://images-sunbird-dashing.ngrok-free.app")
+backend = TeleimpedanceBackend(
+    environment=ENVIRONMENT,
+    base_url=BASE_URL,
+    allowed_origins=[origin.strip() for origin in ALLOWED_ORIGINS.split(',')],
+    eye_tracker_url=EYE_TRACKER_URL,
+    log_level=LOG_LEVEL
+)
 app = backend.app

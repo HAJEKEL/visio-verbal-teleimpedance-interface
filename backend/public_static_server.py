@@ -1,15 +1,44 @@
+import os
+from dotenv import load_dotenv, find_dotenv
+import logging
+import sys
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
+# Load environment variables from .env file if not already set
+dotenv_path = find_dotenv()
+if dotenv_path:
+    load_dotenv(dotenv_path, override=False)
+
+# Retrieve the required environment variables
+try:
+    # Required variables
+    FRONTEND_URL = os.environ['FRONTEND_URL']
+    LOG_LEVEL = os.environ['LOG_LEVEL']
+
+except KeyError as e:
+    logging.error(f"Environment variable {e.args[0]} is not set.")
+    sys.exit(1)
+
+# Configure logging with the specified level
+logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.info(f"Logging level set to {LOG_LEVEL}")
+
+
 app = FastAPI()
 
 # Configure CORS for public image server
 origins = [
-    "https://frontend-example.ngrok-free.app",
-    "http://localhost:5173",
+    FRONTEND_URL
 ]
+
+# Log information about the configured CORS origins
+logging.info("Configuring CORS middleware with the following allowed origins:")
+for origin in origins:
+    logging.info(f" - {origin}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -27,40 +56,16 @@ def read_root():
     """
     Root endpoint describing the public image server functionality with example usage.
     """
-    html_content = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Public Image Server</title>
-    </head>
-    <body>
-        <h1>Welcome to the Public Image Server</h1>
-        <p>This server provides access to public images.</p>
+    # Define the path to the HTML file
+    html_file_path = os.path.join(os.path.dirname(__file__), "templates", "public_static_server_root_page.html")
+    
+    # Read the HTML content
+    try:
+        with open(html_file_path, "r", encoding="utf-8") as file:
+            html_content = file.read()
+    except FileNotFoundError:
+        return HTMLResponse(content="<h1>Error: root_page.html not found</h1>", status_code=500)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>Error: {e}</h1>", status_code=500)
 
-        <h2>Available Endpoint</h2>
-        <ul>
-            <li><strong>Images:</strong> <a href="/images" target="_blank">/images</a> - Browse uploaded images.</li>
-        </ul>
-
-        <h2>Example Usage</h2>
-        <p>To display an image on your website, include the following in your HTML:</p>
-        <pre>
-&lt;img src="https://your-public-url/images/example.jpg" alt="Example Image"&gt;
-        </pre>
-        <p>Replace <code>example.jpg</code> with the name of the image you uploaded.</p>
-
-        <p>To programmatically fetch an image in JavaScript:</p>
-        <pre>
-fetch("https://your-public-url/images/example.jpg")
-    .then(response => response.blob())
-    .then(imageBlob => {
-        const imageUrl = URL.createObjectURL(imageBlob);
-        document.querySelector("img").src = imageUrl;
-    });
-        </pre>
-    </body>
-    </html>
-    """
-    return html_content
+    return HTMLResponse(content=html_content)

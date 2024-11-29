@@ -5,10 +5,6 @@ from fastapi import UploadFile
 from PIL import Image
 import cv2
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO)
-
-
 class ImageProcessor:
     """
     A class to handle image processing tasks such as smart cropping and image uploading.

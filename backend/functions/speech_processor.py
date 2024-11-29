@@ -22,9 +22,6 @@ sys.path.append(str(Path(__file__).resolve().parent))
 # Import the ConversationManager class
 from conversation_history_processor import ConversationHistoryProcessor
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO)
-
 class SpeechProcessor:
     """
     A class to handle speech-to-text (STT), response generation using OpenAI's API, and text-to-speech (TTS).

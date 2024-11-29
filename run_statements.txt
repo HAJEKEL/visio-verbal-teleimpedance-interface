@@ -1,2 +1,3 @@
 To start up both backend and frontend:
-docker compose up --build
+docker compose --profile backend --profile frontend up --build
+

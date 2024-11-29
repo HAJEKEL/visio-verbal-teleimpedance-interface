@@ -3,7 +3,7 @@ import os
 import logging
 
 # Set up logging configuration
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 class ConversationHistoryProcessor:
     """

@@ -7,9 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import commentjson
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO)
-
 class StiffnessMatrixProcessor:
     """
     A class to process stiffness matrices:

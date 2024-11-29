@@ -62,24 +62,6 @@ ffmpeg -f pulse -ac 1 -ar 16000 -i default output.wav
 backend server:
 uvicorn main:app --reload --host 0.0.0.0 --port 8000 --reload
 
-image server:
-uvicorn image_server:app --host 0.0.0.0 --port 8001 --reload
+uvicorn public_static_server:app --host 0.0.0.0 --port 8001 --reload
 
-ellipsoid server:
-uvicorn ellipsoid_server:app --host 0.0.0.0 --port 8002 --reload
-
-matrix server:
-uvicorn matrices_server:app --host 0.0.0.0 --port 8003 --reload
-
-
-# localhost version of the backend
-uvicorn main_localhost:app --host 0.0.0.0 --port 8000 --reload
-
-# All static servers in ope
-uvicorn static_server:app --host 0.0.0.0 --port 8001 --reload
-
-# oop version of the backend
-uvicorn main_oop:app --host 0.0.0.0 --port 8000 --reload
-
-
-
+uvicorn local_static_server:app --host 0.0.0.0 --port 8002 --reload

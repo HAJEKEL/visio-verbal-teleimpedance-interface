@@ -1,8 +1,54 @@
+import os
+from dotenv import load_dotenv, find_dotenv
+import logging
+import sys
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
+from fastapi.staticfiles from dotenv import load_dotenv, find_dotenv
+import logging
+import sysimport StaticFiles
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+
+# Load environment variables from .env file if not already set
+dotenv_path = find_dotenv()
+if dotenv_path:
+    load_dotenv(dotenv_path, override=False)
+
+# Retrieve the required environment variables
+try:
+    # Required variables
+    FRONTEND_URL = os.environ['FRONTEND_URL']
+    LOG_LEVEL = os.environ['LOG_LEVEL']
+
+except KeyError as e:
+    logging.error(f"Environment variable {e.args[0]} is not set.")
+    sys.exit(1)
+
+# Configure logging with the specified level
+logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.info(f"Logging level set to {LOG_LEVEL}")
 
 app = FastAPI()
+
+# Configure CORS for public image server
+origins = [
+    FRONTEND_URL
+]
+# Log information about the configured CORS origins
+logging.info("Configuring CORS middleware with the following allowed origins:")
+for origin in origins:
+    logging.info(f" - {origin}")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
+logging.info("CORS middleware successfully added.")
+
 
 # Mount static directories for matrices and ellipsoids
 app.mount("/matrices", StaticFiles(directory="matrices"), name="matrices")
@@ -14,47 +60,17 @@ def read_root():
     """
     Root endpoint describing the local matrix and ellipsoid server functionality with example usage.
     """
-    html_content = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Local Matrix and Ellipsoid Server</title>
-    </head>
-    <body>
-        <h1>Welcome to the Local Matrix and Ellipsoid Server</h1>
-        <p>This server provides access to stiffness matrices and ellipsoid data.</p>
+    # Define the path to the HTML file
+    html_file_path = os.path.join(os.path.dirname(__file__), "templates", "local_static_server_root_page.html")
+    
+    # Read the HTML content
+    try:
+        with open(html_file_path, "r", encoding="utf-8") as file:
+            html_content = file.read()
+    except FileNotFoundError:
+        return HTMLResponse(content="<h1>Error: root_page.html not found</h1>", status_code=500)
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>Error: {e}</h1>", status_code=500)
 
-        <h2>Available Endpoints</h2>
-        <ul>
-            <li><strong>Stiffness Matrices:</strong> <a href="/matrices" target="_blank">/matrices</a></li>
-            <li><strong>Stiffness Ellipsoids:</strong> <a href="/ellipsoids" target="_blank">/ellipsoids</a></li>
-        </ul>
+    return HTMLResponse(content=html_content)
 
-        <h2>Example Usage</h2>
-        <p>To use a stiffness matrix in Python:</p>
-        <pre>
-import requests
-
-url = "http://localhost:8002/matrices/example_matrix.json"
-response = requests.get(url)
-if response.status_code == 200:
-    matrix_data = response.json()
-    print(matrix_data)
-        </pre>
-
-        <p>To use an ellipsoid file in a script:</p>
-        <pre>
-import requests
-
-url = "http://localhost:8002/ellipsoids/example_ellipsoid.obj"
-response = requests.get(url)
-if response.status_code == 200:
-    with open("example_ellipsoid.obj", "wb") as file:
-        file.write(response.content)
-        </pre>
-    </body>
-    </html>
-    """
-    return html_content

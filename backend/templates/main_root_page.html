@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visio-Verbal Teleimpedance Backend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            padding: 0;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+
+        h1 {
+            color: #4CAF50;
+        }
+
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        a {
+            color: #4CAF50;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h1>Welcome to the Visio-Verbal Teleimpedance Backend</h1>
+    <p>This server powers the visio-verbal teleimpedance interface by integrating voice, images, and gaze data.</p>
+    <p>For interactive API documentation and testing, please visit the <a href="/docs">/docs</a> endpoint.</p>
+
+    <h2>Available Endpoints</h2>
+    <ul>
+        <li>
+            <strong><code>GET /reset</code></strong> - Resets the conversation history.
+            <pre>
+Example Response:
+{{
+"message": "Conversation history reset."
+}}
+            </pre>
+        </li>
+        <li>
+            <strong><code>POST /register_webhook</code></strong> - Registers a webhook URL.
+            <pre>
+Example Request Body (JSON):
+{{
+"webhook_url": "http://example.com/webhook"
+}}
+            </pre>
+            <pre>
+Example Response:
+{{
+"message": "Webhook registered successfully."
+}}
+            </pre>
+        </li>
+        <li>
+            <strong><code>POST /unregister_webhook</code></strong> - Unregisters a webhook URL.
+            <pre>
+Example Request Body (JSON):
+{{
+"webhook_url": "http://example.com/webhook"
+}}
+            </pre>
+            <pre>
+Example Response:
+{{
+"message": "Webhook unregistered successfully."
+}}
+            </pre>
+        </li>
+        <li>
+            <strong><code>GET /list_webhooks</code></strong> - Lists all registered webhook URLs.
+            <pre>
+Example Response:
+{{
+"registered_webhooks": [
+"http://example.com/webhook1",
+"http://example.com/webhook2"
+]
+}}
+            </pre>
+        </li>
+        <li>
+            <strong><code>POST /upload_image</code></strong> - Uploads an image and processes it.
+            <pre>
+Example Request:
+Multipart/form-data with:
+- **file**: Image file to upload
+            </pre>
+            <pre>
+Example Response:
+{{
+"file_url": "http://backend.example.com/static/images/uploaded-image.jpg"
+}}
+            </pre>
+        </li>
+        <li>
+            <strong><code>POST /post_audio</code></strong> - Processes uploaded audio and generates a response.
+            <pre>
+Example Request:
+Multipart/form-data with:
+- **file**: Audio file to upload
+- **image_url** (Optional): URL of an associated image
+            </pre>
+            <pre>
+Example Response:
+(Streaming audio response)
+Headers:
+- **x-matrix-url**: URL to the stiffness matrix CSV file
+- **x-ellipsoid-url**: URL to the ellipsoid plot image
+            </pre>
+        </li>
+        <li>
+            <strong><code>GET /calibrate</code></strong> - Initiates calibration of the connected eye tracker.
+            <pre>
+Example Response:
+{{
+"status": "success",
+"message": "Calibration complete"
+}}
+            </pre>
+        </li>
+        <li>
+            <strong><code>GET /capture_snapshot</code></strong> - Captures a snapshot with gaze point overlay.
+            <pre>
+Example Response:
+{{
+"status": "success",
+"image_url": "http://backend.example.com/static/images/snapshot.jpg"
+}}
+            </pre>
+        </li>
+    </ul>
+
+    <h2>Usage Instructions</h2>
+    <p>Use these endpoints to interact with the visio-verbal teleimpedance system. This server integrates data from
+        voice, image, and gaze trackers to process user inputs.</p>
+    <p>For interactive API documentation and to try out the endpoints directly from your browser, please visit the <a
+            href="/docs">/docs</a> endpoint.</p>
+</body>
+
+</html>
