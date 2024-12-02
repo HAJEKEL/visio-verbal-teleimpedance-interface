@@ -32,6 +32,8 @@ try:
     BASE_URL = os.environ['BASE_URL']
     ENVIRONMENT = os.environ.get('ENVIRONMENT', 'local')
     LOG_LEVEL = os.environ['LOG_LEVEL']
+    SIGMA_SERVER_URL = os.environ['SIGMA_SERVER_URL']
+
 
 except KeyError as e:
     logging.error(f"Environment variable {e.args[0]} is not set.")
@@ -44,7 +46,7 @@ logging.basicConfig(
 
 
 class TeleimpedanceBackend:
-    def __init__(self, environment: str, base_url: str, allowed_origins: List[str], eye_tracker_url: str, log_level:str):
+    def __init__(self, environment: str, base_url: str, allowed_origins: List[str], eye_tracker_url: str, sigma_server_url: str, log_level: str):
         """
         Initializes the backend with the specified environment and base URL.
 
@@ -57,6 +59,8 @@ class TeleimpedanceBackend:
         self.base_url = base_url
         self.origins = allowed_origins
         self.eye_tracker_url = eye_tracker_url
+        self.sigma_server_url = sigma_server_url  # Added this line
+
         # Initialize FastAPI app
         self.app = FastAPI()
 
@@ -101,6 +105,10 @@ class TeleimpedanceBackend:
         self.app.post("/post_audio")(self.post_audio)
         self.app.get("/calibrate")(self.calibrate)
         self.app.get("/capture_snapshot")(self.capture_snapshot)
+        self.app.get("/sigma/start")(self.start_sigma)
+        self.app.get("/sigma/stop")(self.stop_sigma)
+        self.app.get("/sigma/set_zero")(self.set_zero_sigma)
+        self.app.get("/sigma/autoinit")(self.autoinit_sigma)
 
     async def root(self):
         """
@@ -176,6 +184,70 @@ class TeleimpedanceBackend:
         Endpoint to capture a snapshot from the eye tracker.
         """
         return await self.eye_tracker_processor.capture_snapshot()
+    
+    async def start_sigma(self):
+    """
+    Sends a start command to the Sigma7 server.
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{self.sigma_server_url}/control", data="start") as resp:
+                if resp.status == 200:
+                    return {"message": "Sigma7 started successfully."}
+                else:
+                    text = await resp.text()
+                    raise HTTPException(status_code=resp.status, detail=text)
+    except Exception as e:
+        logging.error(f"Error starting Sigma7: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    async def stop_sigma(self):
+    """
+    Sends a stop command to the Sigma7 server.
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{self.sigma_server_url}/control", data="stop") as resp:
+                if resp.status == 200:
+                    return {"message": "Sigma7 stopped successfully."}
+                else:
+                    text = await resp.text()
+                    raise HTTPException(status_code=resp.status, detail=text)
+    except Exception as e:
+        logging.error(f"Error stopping Sigma7: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    async def set_zero_sigma(self):
+        """
+        Sends a set_zero command to the Sigma7 server.
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{self.sigma_server_url}/control", data="set_zero") as resp:
+                    if resp.status == 200:
+                        return {"message": "Sigma7 zero position set successfully."}
+                    else:
+                        text = await resp.text()
+                        raise HTTPException(status_code=resp.status, detail=text)
+        except Exception as e:
+            logging.error(f"Error setting zero position on Sigma7: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    async def autoinit_sigma(self):
+        """
+        Sends a request to autoinit the Sigma7 server.
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.sigma_server_url}/autoinit") as resp:
+                    if resp.status == 200:
+                        return {"message": "Sigma7 autoinit completed successfully."}
+                    else:
+                        text = await resp.text()
+                        raise HTTPException(status_code=resp.status, detail=text)
+        except Exception as e:
+            logging.error(f"Error running autoinit on Sigma7: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     async def post_audio(self, file: UploadFile, image_url: Optional[str] = Form(None)):
         """
@@ -248,6 +320,7 @@ backend = TeleimpedanceBackend(
     base_url=BASE_URL,
     allowed_origins=[origin.strip() for origin in ALLOWED_ORIGINS.split(',')],
     eye_tracker_url=EYE_TRACKER_URL,
+    sigma_server_url=SIGMA_SERVER_URL,  # Added this line
     log_level=LOG_LEVEL
 )
 app = backend.app
