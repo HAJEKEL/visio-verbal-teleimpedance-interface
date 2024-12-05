@@ -1,4 +1,3 @@
-// Layout.tsx
 import React from "react";
 import Title from "./Title";
 import MessageList from "./MessageList";
@@ -28,6 +27,11 @@ type LayoutProps = {
   handleHandsfreeToggle: () => void;
   isHandsfree: boolean;
   setMessages: React.Dispatch<React.SetStateAction<any[]>>;
+  handleStartSigma: () => void; // New handler for Sigma7 start
+  handleStopSigma: () => void;  // New handler for Sigma7 stop
+  handleSetZeroSigma: () => void;  // New handler for Sigma7 set zero
+  handleAutoinitSigma: () => void;  // New handler for Sigma7 autoinit
+  handleInitializeSigma: () => void;  // New handler for Sigma7 initialize
 };
 
 const Layout: React.FC<LayoutProps> = ({
@@ -45,6 +49,11 @@ const Layout: React.FC<LayoutProps> = ({
   handleHandsfreeToggle,
   isHandsfree,
   setMessages,
+  handleStartSigma,
+  handleStopSigma,
+  handleSetZeroSigma,
+  handleAutoinitSigma,
+  handleInitializeSigma
 }) => {
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col">
@@ -71,6 +80,11 @@ const Layout: React.FC<LayoutProps> = ({
         handleReset={handleReset}
         handleHandsfreeToggle={handleHandsfreeToggle}
         isHandsfree={isHandsfree}
+        handleStartSigma={handleStartSigma} // Pass handler for start
+        handleStopSigma={handleStopSigma}   // Pass handler for stop
+        handleSetZeroSigma={handleSetZeroSigma} // Pass handler for set zero
+        handleAutoinitSigma={handleAutoinitSigma} // Pass handler for autoinit
+        handleInitializeSigma={handleInitializeSigma} // Pass handler for
       />
 
       {/* Confirmation Dialog */}
@@ -86,3 +100,4 @@ const Layout: React.FC<LayoutProps> = ({
 };
 
 export default Layout;
+

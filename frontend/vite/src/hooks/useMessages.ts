@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { resetConversation, postAudio } from "../services/apiService";
+import {
+    resetConversation,
+    postAudio,
+    startSigma,
+    stopSigma,
+    setZeroSigma,
+    autoinitSigma,
+    initializeSigma,
+} from "../services/apiService";
 
 type UseMessagesOptions = {
     setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
@@ -100,7 +108,115 @@ const useMessages = ({ setIsLoading, setConfirmationDialog }: UseMessagesOptions
         setConfirmationDialog({ message, onConfirm });
     };
 
-    return { messages, setMessages, handleReset, handleStop, createBlobURL };
+    // Sigma7 action handlers
+    const handleStartSigma = async () => {
+        setIsLoading(true);
+        try {
+            await startSigma();
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { sender: "system", type: "text", content: "Sigma7 server started successfully." },
+            ]);
+        } catch (error) {
+            console.error("Failed to start Sigma7 server:", error);
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { sender: "system", type: "text", content: "Failed to start Sigma7 server." },
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleStopSigma = async () => {
+        setIsLoading(true);
+        try {
+            await stopSigma();
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { sender: "system", type: "text", content: "Sigma7 server stopped successfully." },
+            ]);
+        } catch (error) {
+            console.error("Failed to stop Sigma7 server:", error);
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { sender: "system", type: "text", content: "Failed to stop Sigma7 server." },
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSetZeroSigma = async () => {
+        setIsLoading(true);
+        try {
+            await setZeroSigma();
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { sender: "system", type: "text", content: "Sigma7 server set to zero successfully." },
+            ]);
+        } catch (error) {
+            console.error("Failed to set Sigma7 server zero position:", error);
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { sender: "system", type: "text", content: "Failed to set Sigma7 server zero position." },
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAutoinitSigma = async () => {
+        setIsLoading(true);
+        try {
+            await autoinitSigma();
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { sender: "system", type: "text", content: "Sigma7 server autoinit completed successfully." },
+            ]);
+        } catch (error) {
+            console.error("Failed to autoinit Sigma7 server:", error);
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { sender: "system", type: "text", content: "Failed to autoinit Sigma7 server." },
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleInitializeSigma = async () => {
+        setIsLoading(true);
+        try {
+            await initializeSigma();
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { sender: "system", type: "text", content: "Sigma7 initialized successfully." },
+            ]);
+        } catch (error) {
+            console.error("Failed to initialize Sigma7:", error);
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { sender: "system", type: "text", content: "Failed to initialize Sigma7." },
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+
+    return {
+        messages,
+        setMessages,
+        handleReset,
+        handleStop,
+        handleStartSigma,
+        handleStopSigma,
+        handleSetZeroSigma,
+        handleAutoinitSigma,
+        handleInitializeSigma,
+        createBlobURL,
+    };
 };
 
 export default useMessages;

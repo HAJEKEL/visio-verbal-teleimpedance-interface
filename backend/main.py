@@ -109,6 +109,7 @@ class TeleimpedanceBackend:
         self.app.get("/sigma/stop")(self.stop_sigma)
         self.app.get("/sigma/set_zero")(self.set_zero_sigma)
         self.app.get("/sigma/autoinit")(self.autoinit_sigma)
+        self.app.get("/sigma/initialize")(self.initialize_sigma)
 
     async def root(self):
         """
@@ -186,36 +187,36 @@ class TeleimpedanceBackend:
         return await self.eye_tracker_processor.capture_snapshot()
     
     async def start_sigma(self):
-    """
-    Sends a start command to the Sigma7 server.
-    """
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(f"{self.sigma_server_url}/control", data="start") as resp:
-                if resp.status == 200:
-                    return {"message": "Sigma7 started successfully."}
-                else:
-                    text = await resp.text()
-                    raise HTTPException(status_code=resp.status, detail=text)
-    except Exception as e:
-        logging.error(f"Error starting Sigma7: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        """
+        Sends a start command to the Sigma7 server.
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{self.sigma_server_url}/control", data="start") as resp:
+                    if resp.status == 200:
+                        return {"message": "Sigma7 started successfully."}
+                    else:
+                        text = await resp.text()
+                        raise HTTPException(status_code=resp.status, detail=text)
+        except Exception as e:
+            logging.error(f"Error starting Sigma7: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     async def stop_sigma(self):
-    """
-    Sends a stop command to the Sigma7 server.
-    """
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(f"{self.sigma_server_url}/control", data="stop") as resp:
-                if resp.status == 200:
-                    return {"message": "Sigma7 stopped successfully."}
-                else:
-                    text = await resp.text()
-                    raise HTTPException(status_code=resp.status, detail=text)
-    except Exception as e:
-        logging.error(f"Error stopping Sigma7: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        """
+        Sends a stop command to the Sigma7 server.
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{self.sigma_server_url}/control", data="stop") as resp:
+                    if resp.status == 200:
+                        return {"message": "Sigma7 stopped successfully."}
+                    else:
+                        text = await resp.text()
+                        raise HTTPException(status_code=resp.status, detail=text)
+        except Exception as e:
+            logging.error(f"Error stopping Sigma7: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     async def set_zero_sigma(self):
         """
@@ -249,6 +250,23 @@ class TeleimpedanceBackend:
             logging.error(f"Error running autoinit on Sigma7: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
+    async def initialize_sigma(self):
+        """
+        Sends an initialize command to the Sigma7 server.
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{self.sigma_server_url}/control", data="initialize") as resp:
+                    if resp.status == 200:
+                        return {"message": "Sigma7 initialized successfully."}
+                    else:
+                        text = await resp.text()
+                        raise HTTPException(status_code=resp.status, detail=text)
+        except Exception as e:
+            logging.error(f"Error initializing Sigma7: {type(e).__name__}: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    
     async def post_audio(self, file: UploadFile, image_url: Optional[str] = Form(None)):
         """
         Processes uploaded audio and generates a response.

@@ -24,6 +24,11 @@ const Controller = () => {
     setMessages,
     handleReset,
     handleStop,
+    handleStartSigma,
+    handleStopSigma,
+    handleSetZeroSigma,
+    handleAutoinitSigma,
+    handleInitializeSigma, 
     createBlobURL,
   } = useMessages({ setIsLoading, setConfirmationDialog });
 
@@ -36,33 +41,6 @@ const Controller = () => {
     setMessages,
   });
 
-  const handleVoiceCommand = (command: string) => {
-    if (command === "start") {
-      if (!isRecording) {
-        handleRecordButtonClick();
-      }
-    } else if (command === "stop") {
-      if (isRecording) {
-        handleRecordButtonClick();
-      }
-    } else if (command === "calibrate") {
-      handleCalibration();
-    } else if (command === "capture") {
-      handleCaptureImage();
-    } else if (command === "reset") {
-      handleReset();
-    } else if (command === "continue") {
-      if (confirmationDialog) {
-        confirmationDialog.onConfirm();
-        setConfirmationDialog(null);
-      }
-    } else {
-      console.log("Unrecognized command:", command);
-    }
-  };
-
-  useSpeechRecognition({ onResult: handleVoiceCommand, isHandsfree });
-  
   const { isRecording, startRecording, stopRecording } = useAudioRecorder({
     onStop: handleStop,
     imageURL,
@@ -93,6 +71,51 @@ const Controller = () => {
     }
   };
 
+  const handleVoiceCommand = (command: string) => {
+    switch (command.toLowerCase()) {
+      case "start sigma":
+        handleStartSigma();
+        break;
+      case "stop sigma":
+        handleStopSigma();
+        break;
+      case "set zero sigma":
+        handleSetZeroSigma();
+        break;
+      case "autoinit sigma":
+        handleAutoinitSigma();
+        break;
+      case "initialize sigma":
+        handleInitializeSigma();
+        break;
+      case "start recording":
+        if (!isRecording) handleRecordButtonClick();
+        break;
+      case "stop recording":
+        if (isRecording) handleRecordButtonClick();
+        break;
+      case "calibrate":
+        handleCalibration();
+        break;
+      case "capture":
+        handleCaptureImage();
+        break;
+      case "reset":
+        handleReset();
+        break;
+      case "enable handsfree":
+        if (!isHandsfree) handleHandsfreeToggle();
+        break;
+      case "disable handsfree":
+        if (isHandsfree) handleHandsfreeToggle();
+        break;
+      default:
+        console.log("Unrecognized command:", command);
+    }
+  };
+
+  useSpeechRecognition({ onResult: handleVoiceCommand, isHandsfree });
+
   // Scroll to the bottom whenever messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -114,6 +137,11 @@ const Controller = () => {
       handleHandsfreeToggle={handleHandsfreeToggle}
       isHandsfree={isHandsfree}
       setMessages={setMessages}
+      handleStartSigma={handleStartSigma}
+      handleStopSigma={handleStopSigma}
+      handleSetZeroSigma={handleSetZeroSigma}
+      handleInitializeSigma={handleInitializeSigma}
+      handleAutoinitSigma={handleAutoinitSigma}
     />
   );
 };

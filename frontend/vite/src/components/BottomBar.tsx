@@ -9,6 +9,11 @@ type BottomBarProps = {
   handleReset: () => void;
   handleHandsfreeToggle: () => void;
   isHandsfree: boolean;
+  handleStartSigma: () => void;
+  handleStopSigma: () => void;
+  handleSetZeroSigma: () => void;
+  handleAutoinitSigma: () => void;
+  handleInitializeSigma: () => void;
 };
 
 const BottomBar: React.FC<BottomBarProps> = ({
@@ -19,9 +24,15 @@ const BottomBar: React.FC<BottomBarProps> = ({
   handleReset,
   handleHandsfreeToggle,
   isHandsfree,
+  handleStartSigma,
+  handleStopSigma,
+  handleSetZeroSigma,
+  handleAutoinitSigma,
+  handleInitializeSigma
 }) => {
   return (
     <div className="py-6 border-t text-center bg-gradient-to-r from-sky-500 to-green-500">
+      {/* Existing controls */}
       <div className="flex justify-center items-center w-full">
         <div>
           <button
@@ -57,6 +68,46 @@ const BottomBar: React.FC<BottomBarProps> = ({
             className="px-4 py-2 bg-purple-500 text-white rounded-md ml-4"
           >
             {isHandsfree ? "Disable Handsfree" : "Enable Handsfree"}
+          </button>
+        </div>
+      </div>
+
+      {/* Sigma7 controls */}
+      <div className="flex justify-center items-center w-full mt-4">
+        <div>
+          <button
+            onClick={handleStartSigma}
+            className="px-4 py-2 bg-green-700 text-white rounded-md mr-4"
+          >
+            Start Sigma7
+          </button>
+
+          <button
+            onClick={handleStopSigma}
+            className="px-4 py-2 bg-red-700 text-white rounded-md"
+          >
+            Stop Sigma7
+          </button>
+
+          <button
+            onClick={handleSetZeroSigma}
+            className="px-4 py-2 bg-yellow-700 text-white rounded-md ml-4"
+          >
+            Set Zero Position
+          </button>
+
+          <button
+            onClick={handleAutoinitSigma}
+            className="px-4 py-2 bg-blue-700 text-white rounded-md ml-4"
+          >
+            Run Autoinit
+          </button>
+
+          <button 
+            onClick={handleInitializeSigma}
+            className="px-4 py-2 bg-purple-700 text-white rounded-md ml-4"
+            >
+            Initialize Sigma7
           </button>
         </div>
       </div>

@@ -29,3 +29,24 @@ export const postAudio = (formData: FormData) => {
 export const resetConversation = () => {
     return axios.get(`${BACKEND_URL}/reset`);
 };
+
+// apiService.ts
+export const startSigma = () => {
+    return axios.get(`${BACKEND_URL}/sigma/start`);
+};
+
+export const stopSigma = () => {
+    return axios.get(`${BACKEND_URL}/sigma/stop`);
+};
+
+export const setZeroSigma = () => {
+    return axios.get(`${BACKEND_URL}/sigma/set_zero`);
+};
+
+export const autoinitSigma = () => {
+    return axios.get(`${BACKEND_URL}/sigma/autoinit`);
+};
+
+export const initializeSigma = () => {
+    return axios.get(`${BACKEND_URL}/sigma/initialize`);
+};
