@@ -19,10 +19,9 @@ from functions.image_processor import ImageProcessor
 from functions.webhook_processor import WebhookProcessor
 from functions.eye_tracker_processor import EyeTrackerProcessor
 
-# Load environment variables from .env file if not already set
-dotenv_path = find_dotenv()
-if dotenv_path:
-    load_dotenv(dotenv_path, override=False)
+# Environment variables
+from decouple import config, RepositoryEnv
+
 
 # Retrieve the required environment variables
 try:
@@ -54,6 +53,13 @@ class TeleimpedanceBackend:
         :param base_url: The base URL for image and matrix services.
         :param config_path: Path to an optional JSON configuration file.
         """
+
+        # Define the path to the backend root .env file
+        env_path = Path(__file__).resolve().parent.parent / ".env"
+
+        # Load the environment variables from the root .env file
+        config = Config(RepositoryEnv(str(env_path)))
+    
         self.log_level = log_level.upper()
         self.environment = environment
         self.base_url = base_url

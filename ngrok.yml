@@ -1,0 +1,44 @@
+version: 2
+region: eu
+tunnels:
+  backend_server:
+    proto: http
+    addr: 8000
+    hostname: summary-sunbird-dashing.ngrok-free.app
+    inspect: false
+
+  image_server:
+    proto: http
+    addr: 8002
+    hostname: images-sunbird-dashing.ngrok-free.app
+    inspect: false
+
+  ellipsoid_server:
+    proto: http
+    addr: 8006
+    hostname: ellipsoids-sunbird-dashing.ngrok-free.app
+    inspect: false
+
+  matrices_server:  # Renamed for consistency
+    proto: http
+    addr: 8003
+    hostname: matrices-sunbird-dashing.ngrok-free.app
+    inspect: false
+
+  eye_tracker:
+    proto: http
+    addr: 8011
+    hostname: eye-tracker-sunbird-dashing.ngrok-free.app
+    inspect: false
+
+  frontend:
+    proto: http
+    addr: 5173
+    hostname: frontend-example.ngrok-free.app
+    inspect: false
+
+  sigma7_server:
+    proto: http
+    addr: 8080
+    hostname: sigma7-sunbird-dashing.ngrok-free.app
+    inspect: false

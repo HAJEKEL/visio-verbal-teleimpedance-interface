@@ -11,13 +11,9 @@ import ffmpeg
 
 # Speech Recognition Imports
 from vosk import Model, KaldiRecognizer, SetLogLevel
-
 # OpenAI API Imports
 import openai
-from decouple import config
-
-# Add the parent directory to sys.path to import sibling modules
-sys.path.append(str(Path(__file__).resolve().parent))
+from decouple import config, RepositoryEnv
 
 # Import the ConversationManager class
 from conversation_history_processor import ConversationHistoryProcessor
@@ -26,10 +22,12 @@ class SpeechProcessor:
     """
     A class to handle speech-to-text (STT), response generation using OpenAI's API, and text-to-speech (TTS).
     """
-
-    def __init__(self):
+    # Class variable for Vosk model path
+    VOSK_MODEL_PATH = Path(__file__).resolve().parent.parent / "vosk-model-small-en-us-0.15"
+    
+    def __init__(self, log_level: int = -1):
         # Initialize Vosk model for STT
-        SetLogLevel(-1)  # Suppress Vosk logs
+        SetLogLevel(log_level))  # Suppress Vosk logs
         self.model = self.load_vosk_model()
 
         # Initialize OpenAI client
@@ -37,6 +35,15 @@ class SpeechProcessor:
 
         # Initialize the ConversationManager
         self.conversation_history_processor = ConversationHistoryProcessor()
+
+    def add_parent_to_sys_path():
+        """
+        Adds the parent directory to sys.path for module imports.
+        """
+        parent_dir = Path(__file__).resolve().parent
+        if str(parent_dir) not in sys.path:
+            sys.path.append(str(parent_dir))
+            logging.info(f"Added {parent_dir} to sys.path")
 
     async def convert_audio_format(self, audio_file):
         """
@@ -86,7 +93,7 @@ class SpeechProcessor:
         """
         model_path = os.path.join(os.path.dirname(__file__), "..", "vosk-model-small-en-us-0.15")
         if not os.path.exists(model_path):
-            logging.error(f"Vosk model not found at {model_path}")
+            logging.error(f"Vosk model not found at {model_path}, either download it or update the path using the class method .")
             raise FileNotFoundError(f"Vosk model not found at {model_path}")
         model = Model(model_path)
         logging.info("Vosk model loaded successfully.")
@@ -211,9 +218,6 @@ class SpeechProcessor:
             str: Path to the generated audio file, or False if an error occurred.
         """
         try:
-            import re
-            import os
-
             # Define pattern to locate the stiffness matrix
             stiffness_pattern = r"### Stiffness Matrix(?: \(Recommended Values\))?(?:\n|.)*"
             

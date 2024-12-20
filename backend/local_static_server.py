@@ -3,9 +3,7 @@ from dotenv import load_dotenv, find_dotenv
 import logging
 import sys
 from fastapi import FastAPI
-from fastapi.staticfiles from dotenv import load_dotenv, find_dotenv
-import logging
-import sysimport StaticFiles
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 

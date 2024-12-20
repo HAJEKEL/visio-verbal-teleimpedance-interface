@@ -1,15 +1,9 @@
-version: '3.9'
-
 networks:
   visio_network:
-    driver: bridge
-  kuka_network:
-    driver: macvlan
-    driver_opts:
-      parent: ${KUKA_NETWORK_INTERFACE}  # Use environment variable
     ipam:
+      driver: bridge
       config:
-        - subnet: ${KUKA_SUBNET}  # Use environment variable
+        - subnet: "192.168.92.0/24"
 
 services:
   backend:
@@ -28,7 +22,8 @@ services:
       - ./backend:/app
     working_dir: /app
     networks:
-      - visio_network
+      visio_network:
+        ipv4_address: 192.168.92.21
     profiles:
       - backend
     environment:
@@ -40,12 +35,13 @@ services:
       - EYE_TRACKER_URL=${EYE_TRACKER_URL}
       - BASE_URL=${BASE_URL}
       - ENVIRONMENT=${ENVIRONMENT}
-      # Any other environment variables needed
+      - SIGMA_SERVER_URL=${SIGMA_SERVER_URL}
+    restart: always
 
   frontend:
     build:
       context: ./frontend
-    user: "${UID}:${GID}"  # 
+    user: "${UID}:${GID}"   
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"  # Expose frontend port
     command: >
@@ -62,29 +58,33 @@ services:
     environment:
       - VITE_BACKEND_URL=${BACKEND_URL}
       - VITE_PUBLIC_STATIC_SERVER_URL=${PUBLIC_STATIC_SERVER_URL}
-      # Any other environment variables needed
+    restart: always
 
   sigma7:
     build:
       context: ./sigma7
-    command: >
-      bash -c "
-      cd /workspaces/sigma7/sdk-3.7.3/bin && ./autoinit &&
-      cd /workspaces/sigma7/codes/teleimpedance/bin/Debug && ./teleimpedance
-      "
-    volumes:
-      - ./sigma7:/workspace
-    working_dir: /workspace
-    cap_add:
-      - NET_ADMIN  # Allow network management for running configure_network.sh
-    networks:
-      - kuka_network  # Connect to the physical network
-      - visio_network  # Connect to the Docker internal network
+      dockerfile: Dockerfile
     profiles:
       - sigma7
+    user: "${UID}:${GID}"
+    privileged: true
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+    network_mode: "host"  # This allows the container to use the host's network
+    working_dir: /workspace
+    volumes:
+      - ./sigma7:/workspace
+    command: >
+      bash -c "
+      ./configure_network.sh &&
+      ./teleimpedance/bin/Debug/teleimpedance;
+      bash
+      "
     environment:
       - SIGMA7_PORT=${SIGMA7_PORT}
-      # Any other environment variables needed
+    restart: always
+
+
 
   tobii_connect:
     build:
@@ -105,3 +105,4 @@ services:
     environment:
       - TOBII_CONNECT_PORT=${TOBII_CONNECT_PORT}
       # Any other environment variables needed
+    restart: always

@@ -1,3 +1,18 @@
 To start up both backend and frontend:
 docker compose --profile backend --profile frontend up --build
+# including sigma
+docker compose --profile backend --profile frontend --profile sigma7 up --build
+# only sigma for debug
+docker compose --profile sigma7 up --build
 
+Run everything in background:
+sudo docker compose up -d
+
+To stop and remove:
+docker compose down
+
+To stop (not remove):
+docker compose stop
+
+To show the docker compose induced containers:
+docker compose ps -a
