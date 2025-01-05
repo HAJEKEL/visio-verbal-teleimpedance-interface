@@ -1,5 +1,5 @@
 {
-	"name": "Existing Dockerfile",
+	"name": "Backend",
 	"build": {
 		"context": "..",
 		"dockerfile": "../Dockerfile"

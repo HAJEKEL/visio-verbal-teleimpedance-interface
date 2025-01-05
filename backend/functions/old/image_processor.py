@@ -14,13 +14,14 @@ class ImageProcessor:
         self.images_dir = images_dir
         os.makedirs(self.images_dir, exist_ok=True)
 
-    def smart_crop(self, image_path, output_path):
+    def smart_crop(self, image_path, output_path, size=(512, 512)):
         """
-        Smartly crop the image to focus on the prominent object without resizing to a fixed size.
+        Smartly crop the image to focus on the prominent object and resize to the specified size.
 
         Parameters:
             image_path (str): Path to the input image.
             output_path (str): Path to save the cropped image.
+            size (tuple): The desired size (width, height) of the cropped image.
 
         Returns:
             bool: True if the image was processed successfully, False otherwise.
@@ -45,11 +46,11 @@ class ImageProcessor:
                 logging.info(f"Largest contour found with bounding box: x={x}, y={y}, w={w}, h={h}")
             else:
                 # Fallback to center crop if no contours are found
-                logging.warning(f"No prominent object detected in {image_path}, falling back to full image.")
+                logging.warning(f"No prominent object detected in {image_path}, falling back to center crop.")
                 height, width = img_cv.shape[:2]
                 x, y, w, h = 0, 0, width, height
 
-            # Expand the bounding box slightly (optional)
+            # Expand the bounding box slightly
             margin = 0.1
             x = max(int(x - w * margin), 0)
             y = max(int(y - h * margin), 0)
@@ -57,12 +58,14 @@ class ImageProcessor:
             h = min(int(h * (1 + margin * 2)), img_cv.shape[0] - y)
             logging.info(f"Expanded bounding box: x={x}, y={y}, w={w}, h={h}")
 
-            # Crop without resizing
+            # Crop and resize
             cropped_img = img_cv[y:y+h, x:x+w]
+            cropped_resized = cv2.resize(cropped_img, size)
+            logging.info(f"Image cropped and resized to {size}")
 
-            # Save the processed image as a PIL image (converting color from BGR to RGB)
-            Image.fromarray(cv2.cvtColor(cropped_img, cv2.COLOR_BGR2RGB)).save(output_path)
-            logging.info(f"Smart cropped image (no resize) saved to {output_path}")
+            # Save the processed image
+            Image.fromarray(cv2.cvtColor(cropped_resized, cv2.COLOR_BGR2RGB)).save(output_path)
+            logging.info(f"Smart cropped image saved to {output_path}")
 
             return True
 
@@ -70,7 +73,7 @@ class ImageProcessor:
             logging.error(f"Error during cropping: {e}")
             return False
 
-    async def process_uploaded_image(self, upload_file: UploadFile, base_url: str) -> str:
+    async def process_uploaded_image(self, upload_file: UploadFile, base_url: str, size=(512, 512)) -> str:
         """
         Processes an uploaded image file: saves it temporarily, applies smart cropping,
         saves the final image, and returns the URL to the final image.
@@ -78,6 +81,7 @@ class ImageProcessor:
         Parameters:
             upload_file (UploadFile): The uploaded image file.
             base_url (str): The base URL to use when generating the file URL.
+            size (tuple): The desired size (width, height) of the cropped image.
 
         Returns:
             str: The URL to the final processed image, or None if processing failed.
@@ -95,8 +99,8 @@ class ImageProcessor:
                 buffer.write(file_content)
             logging.info(f"Uploaded file saved temporarily at {temp_path}")
 
-            # Apply smart cropping (no resize)
-            success = self.smart_crop(temp_path, final_path)
+            # Apply smart cropping and save the final image
+            success = self.smart_crop(temp_path, final_path, size=size)
             if not success:
                 logging.error(f"Smart cropping failed for {temp_path}")
                 os.remove(temp_path)  # Clean up the temporary file
@@ -126,9 +130,9 @@ if __name__ == "__main__":
     input_image_path = "path/to/your/input_image.jpg"
     output_image_path = "path/to/save/cropped_image.jpg"
 
-    # Perform smart cropping (no resizing)
+    # Perform smart cropping
     success = processor.smart_crop(input_image_path, output_image_path)
     if success:
-        print(f"Image processed (no resize) and saved to {output_image_path}")
+        print(f"Image processed and saved to {output_image_path}")
     else:
         print("Image processing failed.")
