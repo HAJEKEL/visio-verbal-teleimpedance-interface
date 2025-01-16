@@ -98,9 +98,11 @@ const useMessages = ({ setIsLoading, setConfirmationDialog }: UseMessagesOptions
             try {
                 await resetConversation();
                 setMessages([]);
+                setConfirmationDialog(null); // Close the dialog explicitly
                 window.alert("Conversation history has been reset.");
             } catch (error: any) {
                 console.error("Failed to reset conversation history:", error);
+                setConfirmationDialog(null); // Close the dialog even if the reset fails
                 window.alert("Failed to reset conversation history. Please try again.");
             }
         };
