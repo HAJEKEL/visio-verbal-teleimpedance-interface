@@ -1,4 +1,3 @@
-// useSpeechRecognition.ts
 import { useEffect, useRef } from "react";
 
 type UseSpeechRecognitionOptions = {
@@ -13,7 +12,7 @@ const useSpeechRecognition = ({
   const recognitionRef = useRef<any>(null);
   const onResultRef = useRef(onResult);
 
-  // Update the ref whenever onResult changes
+  // Update the onResultRef whenever onResult changes
   useEffect(() => {
     onResultRef.current = onResult;
   }, [onResult]);
@@ -22,6 +21,7 @@ const useSpeechRecognition = ({
     if (isHandsfree) {
       const SpeechRecognition =
         (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
       if (SpeechRecognition) {
         const recognitionInstance = new SpeechRecognition();
         recognitionInstance.continuous = true;
@@ -39,9 +39,12 @@ const useSpeechRecognition = ({
 
         recognitionInstance.onerror = (event: any) => {
           console.error("Speech recognition error:", event.error);
-          // Restart the recognition instance
-          recognitionInstance.stop();
-          recognitionInstance.start();
+          // Instead of immediate stop->start, we do a short delay via 'abort'.
+          recognitionInstance.abort();
+          setTimeout(() => {
+            console.log("Restarting speech recognition after error...");
+            recognitionInstance.start();
+          }, 500);
         };
 
         recognitionInstance.start();
@@ -51,7 +54,7 @@ const useSpeechRecognition = ({
       }
     }
 
-    // Cleanup when isHandsfree is false or on unmount
+    // Cleanup when isHandsfree goes false or on unmount
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();

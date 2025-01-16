@@ -79,35 +79,35 @@ const BottomBar: React.FC<BottomBarProps> = ({
             onClick={handleStartSigma}
             className="px-4 py-2 bg-green-700 text-white rounded-md mr-4"
           >
-            Start Sigma7
+            Start Sigma
           </button>
 
           <button
             onClick={handleStopSigma}
             className="px-4 py-2 bg-red-700 text-white rounded-md"
           >
-            Stop Sigma7
+            Stop Sigma
           </button>
 
           <button
             onClick={handleSetZeroSigma}
             className="px-4 py-2 bg-yellow-700 text-white rounded-md ml-4"
           >
-            Set Zero Position
+            Set Zero Sigma
           </button>
 
           <button
             onClick={handleAutoinitSigma}
             className="px-4 py-2 bg-blue-700 text-white rounded-md ml-4"
           >
-            Run Autoinit
+            Calibrate Sigma
           </button>
 
           <button 
             onClick={handleInitializeSigma}
             className="px-4 py-2 bg-purple-700 text-white rounded-md ml-4"
             >
-            Initialize Sigma7
+            Initialize Sigma
           </button>
         </div>
       </div>

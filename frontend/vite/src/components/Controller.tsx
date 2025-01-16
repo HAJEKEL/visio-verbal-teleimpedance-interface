@@ -84,7 +84,7 @@ const Controller = () => {
       case "set zero sigma":
         handleSetZeroSigma();
         break;
-      case "autoinit sigma":
+      case "calibrate sigma":
         handleAutoinitSigma();
         break;
       case "initialize sigma":
@@ -108,7 +108,7 @@ const Controller = () => {
       case "enable handsfree":
         if (!isHandsfree) handleHandsfreeToggle();
         break;
-      case "disable handsfree":
+      case "disable":
         if (isHandsfree) handleHandsfreeToggle();
         break;
       default:

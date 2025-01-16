@@ -36,7 +36,9 @@ const useCalibration = ({
                     }
                 }
             }
+
             setIsCalibrating(false);
+            setConfirmationDialog(null); // Clear the confirmation dialog after completion
         };
 
         setConfirmationDialog({ message, onConfirm });
