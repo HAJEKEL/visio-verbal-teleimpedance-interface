@@ -27,7 +27,7 @@ class SpeechProcessor:
     
     def __init__(self, log_level: int = -1):
         # Initialize Vosk model for STT
-        SetLogLevel(log_level))  # Suppress Vosk logs
+        SetLogLevel(log_level)  # Suppress Vosk logs
         self.model = self.load_vosk_model()
 
         # Initialize OpenAI client

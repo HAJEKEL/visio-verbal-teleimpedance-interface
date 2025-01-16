@@ -11,6 +11,11 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 
+from pathlib import Path
+
+# Ensure `functions/` is discoverable
+sys.path.append(str(Path(__file__).resolve().parent / "functions"))
+
 # Import necessary modules
 from functions.speech_processor import SpeechProcessor
 from functions.conversation_history_processor import ConversationHistoryProcessor
@@ -22,24 +27,23 @@ from functions.eye_tracker_processor import EyeTrackerProcessor
 # Environment variables
 from decouple import config, RepositoryEnv
 
-
-# Retrieve the required environment variables
+# Retrieve the required environment variables using config()
 try:
     # Required variables
-    ALLOWED_ORIGINS = os.environ['ALLOWED_ORIGINS']
-    EYE_TRACKER_URL = os.environ['EYE_TRACKER_URL']
-    BASE_URL = os.environ['BASE_URL']
-    ENVIRONMENT = os.environ.get('ENVIRONMENT', 'local')
-    LOG_LEVEL = os.environ['LOG_LEVEL']
-    SIGMA_SERVER_URL = os.environ['SIGMA_SERVER_URL']
-
+    ALLOWED_ORIGINS = config("ALLOWED_ORIGINS")  # Automatically reads from .env
+    EYE_TRACKER_URL = config("EYE_TRACKER_URL")
+    BASE_URL = config("BASE_URL")
+    ENVIRONMENT = config("ENVIRONMENT", default="local")  # Provide default if not set
+    LOG_LEVEL = config("LOG_LEVEL", default="INFO")
+    SIGMA_SERVER_URL = config("SIGMA_SERVER_URL")
 
 except KeyError as e:
     logging.error(f"Environment variable {e.args[0]} is not set.")
     sys.exit(1)
 
+# Configure logging
 logging.basicConfig(
-    level=os.environ.get("LOG_LEVEL").upper(),
+    level=LOG_LEVEL.upper(),
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
@@ -54,12 +58,6 @@ class TeleimpedanceBackend:
         :param config_path: Path to an optional JSON configuration file.
         """
 
-        # Define the path to the backend root .env file
-        env_path = Path(__file__).resolve().parent.parent / ".env"
-
-        # Load the environment variables from the root .env file
-        config = Config(RepositoryEnv(str(env_path)))
-    
         self.log_level = log_level.upper()
         self.environment = environment
         self.base_url = base_url

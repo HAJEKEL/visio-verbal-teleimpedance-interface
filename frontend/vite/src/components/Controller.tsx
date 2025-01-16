@@ -48,7 +48,9 @@ const Controller = () => {
     setMessages,
     createBlobURL,
     setIsLoading,
+    isHandsfree, // Add this prop
   });
+  
 
   const handleRecordButtonClick = () => {
     if (isRecording) {

@@ -1,22 +1,20 @@
 networks:
   visio_network:
     ipam:
-      driver: bridge
       config:
         - subnet: "192.168.92.0/24"
 
 services:
-  backend:
+  backend_main:
     build:
-      context: ./backend
+      context: ./backend  # Build the image here
+      dockerfile: Dockerfile
+    image: visio_backend_image:latest  # Tag the built image
     ports:
-      - "${BACKEND_MAIN_PORT}:${BACKEND_MAIN_PORT}"  # Expose backend port
-      - "${PUBLIC_STATIC_SERVER_PORT}:${PUBLIC_STATIC_SERVER_PORT}"  # Expose public static server port to the host
+      - "${BACKEND_MAIN_PORT}:${BACKEND_MAIN_PORT}"
     command: >
       bash -c "
-      uvicorn main:app --host 0.0.0.0 --port ${BACKEND_MAIN_PORT} --reload &
-      uvicorn public_static_server:app --host 0.0.0.0 --port ${PUBLIC_STATIC_SERVER_PORT} --reload &
-      uvicorn local_static_server:app --host 0.0.0.0 --port ${LOCAL_STATIC_SERVER_PORT} --reload
+      uvicorn main:app --host 0.0.0.0 --port ${BACKEND_MAIN_PORT} --reload
       "
     volumes:
       - ./backend:/app
@@ -28,9 +26,6 @@ services:
       - backend
     environment:
       - BACKEND_MAIN_PORT=${BACKEND_MAIN_PORT}
-      - PUBLIC_STATIC_SERVER_PORT=${PUBLIC_STATIC_SERVER_PORT}
-      - LOCAL_STATIC_SERVER_PORT=${LOCAL_STATIC_SERVER_PORT}
-      - TOBII_CONNECT_URL=${TOBII_CONNECT_URL}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - EYE_TRACKER_URL=${EYE_TRACKER_URL}
       - BASE_URL=${BASE_URL}
@@ -38,12 +33,56 @@ services:
       - SIGMA_SERVER_URL=${SIGMA_SERVER_URL}
     restart: always
 
+  public_static_server:
+    image: visio_backend_image:latest  # Use the prebuilt image
+    depends_on:
+      - backend_main  # Depends on the first server to build the image
+    ports:
+      - "${PUBLIC_STATIC_SERVER_PORT}:${PUBLIC_STATIC_SERVER_PORT}"
+    command: >
+      bash -c "
+      uvicorn public_static_server:app --host 0.0.0.0 --port ${PUBLIC_STATIC_SERVER_PORT} --reload
+      "
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    networks:
+      visio_network:
+        ipv4_address: 192.168.92.22
+    profiles:
+      - backend
+    environment:
+      - PUBLIC_STATIC_SERVER_PORT=${PUBLIC_STATIC_SERVER_PORT}
+    restart: always
+
+  local_static_server:
+    image: visio_backend_image:latest  # Use the prebuilt image
+    depends_on:
+      - backend_main  # Depends on the first server to build the image
+    ports:
+      - "${LOCAL_STATIC_SERVER_PORT}:${LOCAL_STATIC_SERVER_PORT}"
+    command: >
+      bash -c "
+      uvicorn local_static_server:app --host 0.0.0.0 --port ${LOCAL_STATIC_SERVER_PORT} --reload
+      "
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    networks:
+      visio_network:
+        ipv4_address: 192.168.92.23
+    profiles:
+      - backend
+    environment:
+      - LOCAL_STATIC_SERVER_PORT=${LOCAL_STATIC_SERVER_PORT}
+    restart: always
+
   frontend:
     build:
       context: ./frontend
     user: "${UID}:${GID}"   
     ports:
-      - "${FRONTEND_PORT}:${FRONTEND_PORT}"  # Expose frontend port
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     command: >
       bash -c "
       cd vite && yarn dev --host
@@ -70,7 +109,7 @@ services:
     privileged: true
     devices:
       - "/dev/bus/usb:/dev/bus/usb"
-    network_mode: "host"  # This allows the container to use the host's network
+    network_mode: "host"
     working_dir: /workspace
     volumes:
       - ./sigma7:/workspace
@@ -84,13 +123,11 @@ services:
       - SIGMA7_PORT=${SIGMA7_PORT}
     restart: always
 
-
-
   tobii_connect:
     build:
       context: ./tobii_connect
     ports:
-      - "${TOBII_CONNECT_PORT}:${TOBII_CONNECT_PORT}"  # Expose port if needed
+      - "${TOBII_CONNECT_PORT}:${TOBII_CONNECT_PORT}"
     command: >
       bash -c "
       uvicorn capture:app --host 0.0.0.0 --port ${TOBII_CONNECT_PORT} --reload
@@ -104,5 +141,4 @@ services:
       - tobii
     environment:
       - TOBII_CONNECT_PORT=${TOBII_CONNECT_PORT}
-      # Any other environment variables needed
     restart: always

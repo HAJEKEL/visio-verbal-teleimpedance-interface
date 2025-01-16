@@ -83,11 +83,8 @@ RUN curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
     && apt-get update \
     && apt-get install -y ngrok
 
-# Copy the .env file into the container
-COPY functions/.env /app/.env
-
-# Copy the ngrok.yml file into the container
-COPY prompt_engineering_experiment/ngrok.yml /app/.ngrok2/ngrok.yml
+# Copy the application code into the container
+COPY . /app
 
 # Set up Ngrok authtoken using an environment variable from .env file
 RUN export $(cat /app/.env | xargs) && ngrok config add-authtoken ${NGROK_AUTH_TOKEN}
@@ -101,8 +98,6 @@ COPY requirements.txt /app/
 # Install any needed packages specified in requirements.txt
 RUN pip3 install --no-cache-dir --upgrade pip && pip3 install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the container
-COPY . /app
 
 # Notify the user that this container expects these ports to be exposed
 EXPOSE 8000
