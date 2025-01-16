@@ -1,6 +1,11 @@
 import axios from "axios";
 
-const BACKEND_URL = "http://localhost:8000";
+// Get the backend URL from the environment variable
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+if (!BACKEND_URL) {
+    console.error("Backend URL is not defined in the environment variables.");
+}
 
 export const calibrate = () => {
     return axios.get(`${BACKEND_URL}/calibrate`);
@@ -30,7 +35,6 @@ export const resetConversation = () => {
     return axios.get(`${BACKEND_URL}/reset`);
 };
 
-// apiService.ts
 export const startSigma = () => {
     return axios.get(`${BACKEND_URL}/sigma/start`);
 };

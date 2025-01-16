@@ -10,22 +10,29 @@ function Title({ setMessages }: Props) {
 
   // Reset conversation
   const resetConversation = async () => {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    if (!backendUrl) {
+      console.error("Backend URL is not defined in the environment variables.");
+      return;
+    }
+
+    const resetUrl = `${backendUrl}/reset`; // Combine base URL with endpoint
     setIsResetting(true);
 
-    await axios
-      .get("http://localhost:8000/reset", {
+    try {
+      const res = await axios.get(resetUrl, {
         headers: {
           "Content-Type": "application/json",
         },
-      })
-      .then((res) => {
-        if (res.status == 200) {
-          setMessages([]);
-        }
-      })
-      .catch((err) => {});
-
-    setIsResetting(false);
+      });
+      if (res.status === 200) {
+        setMessages([]);
+      }
+    } catch (err) {
+      console.error("Failed to reset conversation:", err);
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (
