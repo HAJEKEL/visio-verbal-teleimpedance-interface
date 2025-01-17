@@ -15,7 +15,7 @@ if dotenv_path:
 # Retrieve the required environment variables
 try:
     # Required variables
-    FRONTEND_URL = os.environ['FRONTEND_URL']
+    FRONTEND_PORT = os.environ['FRONTEND_PORT']
     LOG_LEVEL = os.environ['LOG_LEVEL']
 
 except KeyError as e:
@@ -31,7 +31,7 @@ app = FastAPI()
 
 # Configure CORS for public image server
 origins = [
-    FRONTEND_URL
+    f"http://localhost:{FRONTEND_PORT}"
 ]
 
 # Log information about the configured CORS origins

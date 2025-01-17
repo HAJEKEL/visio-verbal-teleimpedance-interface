@@ -20,6 +20,7 @@ class StiffnessMatrixProcessor:
         use_public_urls=False,
         matrices_base_url=None,
         ellipsoids_base_url=None,
+        local_static_server_port=None,
         matrices_dir='matrices',
         ellipsoids_dir='ellipsoids'
     ):
@@ -44,8 +45,8 @@ class StiffnessMatrixProcessor:
             self.ellipsoids_base_url = 'https://ellipsoids-sunbird-dashing.ngrok-free.app'
         else:
             # Use localhost or provided base URLs
-            self.matrices_base_url = matrices_base_url or 'http://localhost:8003'
-            self.ellipsoids_base_url = ellipsoids_base_url or 'http://localhost:8003'
+            self.matrices_base_url = matrices_base_url or f"http://localhost:{local_static_server_port}"
+            self.ellipsoids_base_url = ellipsoids_base_url or f"http://localhost:{local_static_server_port}"
 
         # Ensure base URLs do not have trailing slashes
         self.matrices_base_url = self.matrices_base_url.rstrip('/')
@@ -148,13 +149,18 @@ class StiffnessMatrixProcessor:
             # Perform eigenvalue decomposition
             eigenvalues, eigenvectors = np.linalg.eigh(K)
 
+            # Sort eigenvalues and eigenvectors in descending order
+            idx = eigenvalues.argsort()[::-1]
+            eigenvalues = eigenvalues[idx]
+            eigenvectors = eigenvectors[:, idx]
+
             # Check for positive eigenvalues
             if np.any(eigenvalues <= 0):
                 logging.error("Stiffness matrix must be positive definite.")
                 return None
 
-            # The lengths of the ellipsoid axes are inversely proportional to the square roots of eigenvalues
-            axes_lengths = 1 / np.sqrt(eigenvalues)
+            # The lengths of the ellipsoid axes are proportional to the square roots of eigenvalues
+            axes_lengths = np.sqrt(eigenvalues)
 
             # Generate ellipsoid data
             u = np.linspace(0, 2 * np.pi, 100)
@@ -203,6 +209,7 @@ class StiffnessMatrixProcessor:
         except Exception as e:
             logging.error(f"Error generating ellipsoid plot: {e}")
             return None
+
 
 if __name__ == "__main__":
     # To switch between localhost and public URLs, set use_public_urls accordingly

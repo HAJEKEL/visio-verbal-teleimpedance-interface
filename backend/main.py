@@ -29,13 +29,16 @@ from decouple import config, RepositoryEnv
 
 # Retrieve the required environment variables using config()
 try:
-    # Required variables
-    ALLOWED_ORIGINS = config("ALLOWED_ORIGINS")  # Automatically reads from .env
-    EYE_TRACKER_URL = config("EYE_TRACKER_URL")
-    BASE_URL = config("BASE_URL")
-    ENVIRONMENT = config("ENVIRONMENT", default="local")  # Provide default if not set
-    LOG_LEVEL = config("LOG_LEVEL", default="INFO")
-    SIGMA_SERVER_URL = config("SIGMA_SERVER_URL")
+    # Load ports and other necessary variables
+    BACKEND_MAIN_PORT = config("BACKEND_MAIN_PORT")  # Port for the main backend
+    PUBLIC_STATIC_SERVER_PORT = config("PUBLIC_STATIC_SERVER_PORT")  # Port for public static server
+    LOCAL_STATIC_SERVER_PORT = config("LOCAL_STATIC_SERVER_PORT")  # Port for local static server
+    EYE_TRACKER_PORT = config("EYE_TRACKER_PORT")  # Port for eye tracker
+    SIGMA_SERVER_PORT = config("SIGMA_SERVER_PORT")  # Port for Sigma7 server
+    FRONTEND_PORT = config("FRONTEND_PORT")  # Port for the frontend
+    # Other variables
+    ENVIRONMENT = config("ENVIRONMENT", default="local")  # Default to local environment
+    LOG_LEVEL = config("LOG_LEVEL", default="INFO")  # Logging level
 
 except KeyError as e:
     logging.error(f"Environment variable {e.args[0]} is not set.")
@@ -47,9 +50,24 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# Assemble URLs using localhost and ports
+BACKEND_URL = f"http://localhost:{BACKEND_MAIN_PORT}"  # Backend main URL
+PUBLIC_STATIC_SERVER_URL = f"http://localhost:{PUBLIC_STATIC_SERVER_PORT}"  # Public static server
+LOCAL_STATIC_SERVER_URL = f"http://localhost:{LOCAL_STATIC_SERVER_PORT}"  # Local static server
+EYE_TRACKER_URL = f"http://localhost:{EYE_TRACKER_PORT}"  # Eye tracker URL
+SIGMA_SERVER_URL = f"http://localhost:{SIGMA_SERVER_PORT}"  # Sigma7 server URL
+
+# Optionally log the assembled URLs for debugging
+logging.info(f"Backend URL: {BACKEND_URL}")
+logging.info(f"Public Static Server URL: {PUBLIC_STATIC_SERVER_URL}")
+logging.info(f"Local Static Server URL: {LOCAL_STATIC_SERVER_URL}")
+logging.info(f"Eye Tracker URL: {EYE_TRACKER_URL}")
+logging.info(f"Sigma7 Server URL: {SIGMA_SERVER_URL}")
+
+
 
 class TeleimpedanceBackend:
-    def __init__(self, environment: str, base_url: str, allowed_origins: List[str], eye_tracker_url: str, sigma_server_url: str, log_level: str):
+    def __init__(self, environment: str, base_url: str, frontend_port: str, eye_tracker_url: str, sigma_server_url: str, log_level: str):
         """
         Initializes the backend with the specified environment and base URL.
 
@@ -61,7 +79,8 @@ class TeleimpedanceBackend:
         self.log_level = log_level.upper()
         self.environment = environment
         self.base_url = base_url
-        self.origins = allowed_origins
+        self.origins = f"http://localhost:{frontend_port}"
+
         self.eye_tracker_url = eye_tracker_url
         self.sigma_server_url = sigma_server_url  # Added this line
 
@@ -74,7 +93,7 @@ class TeleimpedanceBackend:
         # Initialize processors
         self.speech_processor = SpeechProcessor()
         self.conversation_history_processor = ConversationHistoryProcessor()
-        self.stiffness_matrix_processor = StiffnessMatrixProcessor(use_public_urls=False)
+        self.stiffness_matrix_processor = StiffnessMatrixProcessor(use_public_urls=False, local_static_server_port=LOCAL_STATIC_SERVER_PORT)
         self.image_processor = ImageProcessor()
         self.webhook_processor = WebhookProcessor()
         self.eye_tracker_processor = EyeTrackerProcessor(eye_tracker_url=eye_tracker_url)
@@ -339,8 +358,8 @@ class TeleimpedanceBackend:
 
 backend = TeleimpedanceBackend(
     environment=ENVIRONMENT,
-    base_url=BASE_URL,
-    allowed_origins=[origin.strip() for origin in ALLOWED_ORIGINS.split(',')],
+    base_url=PUBLIC_STATIC_SERVER_URL,
+    frontend_port=FRONTEND_PORT,
     eye_tracker_url=EYE_TRACKER_URL,
     sigma_server_url=SIGMA_SERVER_URL,  # Added this line
     log_level=LOG_LEVEL
