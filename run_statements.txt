@@ -16,3 +16,13 @@ docker compose stop
 
 To show the docker compose induced containers:
 docker compose ps -a
+
+To show logs of a specific server:
+docker-compose logs -f backend_main
+
+
+
+### Step 1: To run the interface first build the images
+docker compose build
+### Step 2: Spin up the containers with the desired profile(s)
+docker compose --profile backend up
