@@ -12,7 +12,7 @@ const useSilenceDetection = ({
     analyserNode,
     isRecording,
     onSilence,
-    silenceDelay = 3000,
+    silenceDelay = 2000,
     threshold = -50,
 }: UseSilenceDetectionOptions) => {
     const silenceStartRef = useRef<number | null>(null);

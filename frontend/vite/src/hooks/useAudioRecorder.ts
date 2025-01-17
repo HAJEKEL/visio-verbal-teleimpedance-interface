@@ -145,7 +145,7 @@ const useAudioRecorder = ({
         isRecording: isHandsfree ? isRecording : false,
         onSilence: stopRecording,
         threshold: -60,
-        silenceDelay: 5000,
+        silenceDelay: 2000,
     });
 
     return { isRecording, startRecording, stopRecording };
