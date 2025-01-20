@@ -55,7 +55,7 @@ BACKEND_URL = f"http://localhost:{BACKEND_MAIN_PORT}"  # Backend main URL
 PUBLIC_STATIC_SERVER_URL = f"http://localhost:{PUBLIC_STATIC_SERVER_PORT}"  # Public static server
 LOCAL_STATIC_SERVER_URL = f"http://localhost:{LOCAL_STATIC_SERVER_PORT}"  # Local static server
 EYE_TRACKER_URL = config("EYE_TRACKER_URL")  # Eye tracker URL
-SIGMA_SERVER_URL = f"http://localhost:{SIGMA_SERVER_PORT}"  # Sigma7 server URL
+SIGMA_SERVER_URL = f"http://sigma7:{SIGMA_SERVER_PORT}"  # Sigma7 server URL
 
 # Optionally log the assembled URLs for debugging
 logging.info(f"Backend URL: {BACKEND_URL}")

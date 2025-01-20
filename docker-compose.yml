@@ -4,6 +4,16 @@ networks:
   visio_network:
     driver: bridge
 
+  kuka_network:
+    driver: macvlan
+    driver_opts:
+      parent: enp0s31f6  # Your physical interface
+    ipam:
+      config:
+        - subnet: 192.180.1.0/24  # The same network as your KUKA controller
+          gateway: 192.180.1.1    # If you have a gateway on that network
+          ip_range: 192.180.1.0/24
+
 services:
   backend_main:
     container_name: backend_main
@@ -115,17 +125,18 @@ services:
       dockerfile: Dockerfile
     profiles:
       - sigma7
-    user: "${UID}:${GID}"
     privileged: true
     devices:
       - "/dev/bus/usb:/dev/bus/usb"
-    network_mode: "host"
     working_dir: /workspace
+    networks:
+      visio_network:
+      kuka_network:
+        ipv4_address: 192.180.1.3  # static IP for the container on that LAN
     volumes:
       - ./sigma7:/workspace
     command: >
       bash -c "
-      ./configure_network.sh &&
       ./teleimpedance/bin/Debug/teleimpedance;
       bash
       "
