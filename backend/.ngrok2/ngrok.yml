@@ -4,6 +4,6 @@ region: eu
 tunnels:
   image_server:
     proto: http
-    addr: 8004
+    addr: 8001
     hostname: images-sunbird-dashing.ngrok-free.app
     inspect: false

@@ -16,9 +16,11 @@ const useCaptureImage = ({ setMessages }: UseCaptureImageOptions) => {
             const formData = new FormData();
             formData.append("file", file);
 
-            const uploadedImageURL = await uploadImage(formData);
+            const uploadedImageResponse = await uploadImage(formData);
+            const uploadedImageURL = uploadedImageResponse.file_url; // Extract the file_url
             setImageURL(uploadedImageURL);
 
+            console.log("Uploaded Image URL:", uploadedImageURL);
             setMessages((prevMessages) => [
                 ...prevMessages,
                 { sender: "me", type: "image", imageUrl: uploadedImageURL },

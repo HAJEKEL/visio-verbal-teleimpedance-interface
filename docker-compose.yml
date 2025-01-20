@@ -1,11 +1,12 @@
+version: "3.8"
+
 networks:
   visio_network:
-    ipam:
-      config:
-        - subnet: "192.168.92.0/24"
+    driver: bridge
 
 services:
   backend_main:
+    container_name: backend_main
     build:
       context: ./backend  # Build the image here
       dockerfile: Dockerfile
@@ -20,42 +21,50 @@ services:
       - ./backend:/app
     working_dir: /app
     networks:
-      visio_network:
-        ipv4_address: 192.168.92.21
+      - visio_network
     profiles:
       - backend
     environment:
       - BACKEND_MAIN_PORT=${BACKEND_MAIN_PORT}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      # Replace references to localhost:8001 with the service name public_static_server:8001
+      - PUBLIC_STATIC_SERVER_URL=http://public_static_server:${PUBLIC_STATIC_SERVER_PORT}
+      - LOCAL_STATIC_SERVER_PORT=${LOCAL_STATIC_SERVER_PORT}
       - EYE_TRACKER_URL=${EYE_TRACKER_URL}
       - BASE_URL=${BASE_URL}
       - ENVIRONMENT=${ENVIRONMENT}
       - SIGMA_SERVER_URL=${SIGMA_SERVER_URL}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     restart: always
 
   public_static_server:
-    image: visio_backend_image:latest  # Use the prebuilt image
-    depends_on:
-      - backend_main  # Depends on the first server to build the image
-    ports:
-      - "${PUBLIC_STATIC_SERVER_PORT}:${PUBLIC_STATIC_SERVER_PORT}"
+    container_name: public_static_server
+    image: visio_backend_image:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     command: >
       bash -c "
+      ngrok config add-authtoken ${NGROK_AUTH_TOKEN} &&
+      ngrok start --all --config /app/.ngrok2/ngrok.yml &
       uvicorn public_static_server:app --host 0.0.0.0 --port ${PUBLIC_STATIC_SERVER_PORT} --reload
       "
+    ports:
+      - "${PUBLIC_STATIC_SERVER_PORT}:${PUBLIC_STATIC_SERVER_PORT}"
     volumes:
       - ./backend:/app
+      - ./ngrok.yml:/app/.ngrok2/ngrok.yml:ro
     working_dir: /app
     networks:
-      visio_network:
-        ipv4_address: 192.168.92.22
+      - visio_network
     profiles:
       - backend
     environment:
       - PUBLIC_STATIC_SERVER_PORT=${PUBLIC_STATIC_SERVER_PORT}
+      - NGROK_AUTH_TOKEN=2knqqQuu9XdscuicwsTV4MFs3Qm_66caFpy7tUnz1EpuqKAd4
     restart: always
 
   local_static_server:
+    container_name: local_static_server
     image: visio_backend_image:latest  # Use the prebuilt image
     depends_on:
       - backend_main  # Depends on the first server to build the image
@@ -69,8 +78,7 @@ services:
       - ./backend:/app
     working_dir: /app
     networks:
-      visio_network:
-        ipv4_address: 192.168.92.23
+      - visio_network
     profiles:
       - backend
     environment:
@@ -78,9 +86,10 @@ services:
     restart: always
 
   frontend:
+    container_name: frontend
     build:
       context: ./frontend
-    user: "${UID}:${GID}"   
+    user: "${UID}:${GID}"
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     command: >
@@ -100,6 +109,7 @@ services:
     restart: always
 
   sigma7:
+    container_name: sigma7
     build:
       context: ./sigma7
       dockerfile: Dockerfile
@@ -124,6 +134,7 @@ services:
     restart: always
 
   tobii_connect:
+    container_name: tobii_connect
     build:
       context: ./tobii_connect
     ports:
@@ -142,3 +153,4 @@ services:
     environment:
       - TOBII_CONNECT_PORT=${TOBII_CONNECT_PORT}
     restart: always
+

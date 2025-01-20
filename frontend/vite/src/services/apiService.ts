@@ -22,6 +22,7 @@ export const uploadImage = async (formData: FormData) => {
     const response = await axios.post(`${BACKEND_URL}/upload_image`, formData, {
         timeout: 10000,
     });
+    console.log("uploadImage response:", response.data); // Log to debug
     return response.data;
 };
 

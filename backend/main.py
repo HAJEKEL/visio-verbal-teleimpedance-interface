@@ -296,6 +296,10 @@ class TeleimpedanceBackend:
         """
         converted_audio_file_path = None
         try:
+            # Log received data for debugging
+            logging.info(f"Received audio file: {file.filename}, Content-Type: {file.content_type}")
+            logging.info(f"Received image URL: {image_url}")
+
             # Convert audio format
             converted_audio_file_path = await self.speech_processor.convert_audio_format(file)
 
@@ -354,7 +358,6 @@ class TeleimpedanceBackend:
         finally:
             if converted_audio_file_path and os.path.exists(converted_audio_file_path):
                 os.remove(converted_audio_file_path)
-
 
 backend = TeleimpedanceBackend(
     environment=ENVIRONMENT,

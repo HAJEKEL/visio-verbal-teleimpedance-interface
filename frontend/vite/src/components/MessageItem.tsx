@@ -7,12 +7,14 @@ type MessageItemProps = {
     sender: string;
     type: string;
     blobUrl?: string;
-    imageUrl?: string;
+    imageUrl?: string | { file_url: string }; // Allow imageUrl to be either a string or an object
     dataUrl?: string;
   };
 };
 
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
+  console.log("Rendering MessageItem with message:", message);
+
   return (
     <div
       className={
@@ -35,10 +37,15 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
           <audio src={message.blobUrl} className="appearance-none" controls />
         ) : message.type === "image" ? (
           <img
-            src={message.imageUrl}
-            alt="Image"
-            className="w-full max-w-2xl h-auto mt-2"
-          />
+          src={
+            typeof message.imageUrl === "object" && message.imageUrl !== null
+              ? message.imageUrl.file_url
+              : message.imageUrl
+          }
+          alt="Image"
+          className="w-full max-w-2xl h-auto mt-2"
+        />
+        
         ) : message.type === "matrix" ? (
           <MatrixDisplay dataUrl={message.dataUrl!} />
         ) : null}

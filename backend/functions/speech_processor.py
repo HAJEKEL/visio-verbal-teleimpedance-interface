@@ -8,6 +8,7 @@ import requests
 import re
 from pathlib import Path
 import ffmpeg
+import urllib
 
 # Speech Recognition Imports
 from vosk import Model, KaldiRecognizer, SetLogLevel
@@ -162,8 +163,17 @@ class SpeechProcessor:
             # Prepare user message
             content = [{"type": "text", "text": transcript}]
             if image_url:
+                logging.info(f"Original Image URL received: {image_url}")
+                
+                # Replace local URL with public Ngrok URL
+                public_base_url = "https://images-sunbird-dashing.ngrok-free.app"
+                parsed_url = urllib.parse.urlparse(image_url)
+                public_image_url = f"{public_base_url}{parsed_url.path}"
+                
+                logging.info(f"Modified Image URL for public access: {public_image_url}")
+                
                 # Add a cache-busting parameter to ensure fresh requests
-                image_url_with_cache = f"{image_url}?cache_bust={int(time.time())}"
+                image_url_with_cache = f"{public_image_url}?cache_bust={int(time.time())}"
 
                 # Verify URL accessibility before proceeding
                 response = requests.get(image_url_with_cache, timeout=20)
@@ -182,6 +192,7 @@ class SpeechProcessor:
             history.append(user_message)
             logging.info("User message added to conversation history.")
             client = self.client
+            
             # Call the OpenAI API
             stream = client.chat.completions.create(
                 model="gpt-4o",
@@ -190,12 +201,12 @@ class SpeechProcessor:
             )
             gpt_response = ""  # Initialize an empty string to accumulate the response
 
-            
             # Loop over the chunks from the stream
             for chunk in stream:
                 if chunk.choices[0].delta.content is not None:
                     content = chunk.choices[0].delta.content
                     gpt_response += content  # Accumulate the streamed content
+            
             logging.info(f"GPT response received: {gpt_response}")
 
             # Update the conversation history with the assistant's response

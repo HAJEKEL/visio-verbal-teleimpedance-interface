@@ -36,6 +36,8 @@ const useMessages = ({ setIsLoading, setConfirmationDialog }: UseMessagesOptions
 
         const myMessage = { sender: "me", type: "audio", blobUrl };
         setMessages((prevMessages) => [...prevMessages, myMessage]);
+        console.log("Blob URL:", blobUrl); // Log the audio blob URL
+        console.log("Image URL before adding to formData:", imageURL); // Log the image URL
 
         fetch(blobUrl)
             .then((res) => res.blob())
@@ -43,16 +45,21 @@ const useMessages = ({ setIsLoading, setConfirmationDialog }: UseMessagesOptions
                 const formData = new FormData();
                 formData.append("file", blob, "myFile.wav");
 
+                // Ensure imageURL is properly appended as a string
                 if (imageURL) {
-                    formData.append("image_url", imageURL);
+                    const extractedUrl = typeof imageURL === "object" && "file_url" in imageURL ? imageURL.file_url : imageURL;
+                    console.log("Adding image URL to formData:", extractedUrl); // Log the extracted image URL
+                    formData.append("image_url", extractedUrl);
                     setImageURL(null);
+                } else {
+                    console.warn("No image URL provided for this audio message.");
                 }
 
                 try {
                     const { data, headers } = await postAudio(formData);
                     const audioUrl = createBlobURL(data);
 
-                    const newMessages = [];
+                    const newMessages: Array<{ sender: string; type: string; blobUrl?: string; dataUrl?: string; imageUrl?: string }> = [];
 
                     const matriceMessage = {
                         sender: "matrice",
