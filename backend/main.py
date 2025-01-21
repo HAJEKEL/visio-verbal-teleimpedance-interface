@@ -302,7 +302,9 @@ class TeleimpedanceBackend:
 
             # Convert audio format
             converted_audio_file_path = await self.speech_processor.convert_audio_format(file)
-
+            # Convert local image url to public image url
+            if image_url:
+                image_url = self.speech_processor.convert_local_image_url_to_public(image_url)
             # Transcribe audio
             transcript = self.speech_processor.speech_to_text(converted_audio_file_path)
             if transcript is None:
@@ -320,6 +322,7 @@ class TeleimpedanceBackend:
 
             if result:
                 stiffness_matrix, matrix_file_url = result
+                logging.info(f"Stiffness matrix to send: {stiffness_matrix}")
                 async with aiohttp.ClientSession() as session:
                     for webhook_url in self.webhook_urls:
                         try:
@@ -330,9 +333,11 @@ class TeleimpedanceBackend:
 
             # Update conversation history
             if image_url:
-                self.conversation_history_processor.update_conversation_history(transcript, image_url, response)
+                # second param is response, third is image_url
+                self.conversation_history_processor.update_conversation_history(transcript, response, image_url)
             else:
                 self.conversation_history_processor.update_conversation_history(transcript, response)
+
 
             # Generate TTS audio
             audio_file_path = self.speech_processor.text_to_speech(response)

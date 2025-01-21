@@ -4,6 +4,7 @@ import uuid
 from fastapi import UploadFile
 from PIL import Image
 import cv2
+from pathlib import Path
 
 class ImageProcessor:
     """
@@ -86,8 +87,13 @@ class ImageProcessor:
             # Generate a unique filename
             file_extension = os.path.splitext(upload_file.filename)[-1]
             unique_filename = f"{uuid.uuid4()}{file_extension}"
+
+            # Temp path for the raw image
             temp_path = os.path.join(self.images_dir, f"temp_{unique_filename}")
-            final_path = os.path.join(self.images_dir, unique_filename)
+
+            # Final filename with "_cropped" appended
+            cropped_filename = f"{os.path.splitext(unique_filename)[0]}_cropped{file_extension}"
+            final_path = os.path.join(self.images_dir, cropped_filename)
 
             # Save the uploaded file temporarily
             with open(temp_path, "wb") as buffer:
@@ -107,8 +113,8 @@ class ImageProcessor:
             os.remove(temp_path)
             logging.info(f"Temporary file {temp_path} removed")
 
-            # Generate the file URL
-            file_url = f"{base_url}/{self.images_dir}/{unique_filename}"
+            # Generate the file URL pointing to the cropped file
+            file_url = f"{base_url}/{self.images_dir}/{cropped_filename}"
             logging.info(f"File URL generated: {file_url}")
 
             return file_url
@@ -119,15 +125,21 @@ class ImageProcessor:
 
 
 if __name__ == "__main__":
-    # Example usage of the ImageProcessor class
-    processor = ImageProcessor()
+    # Base directory for images (relative to this script)
+    base_dir = Path(__file__).resolve().parent.parent / "images"
+
+    # Ensure the directory exists
+    base_dir.mkdir(parents=True, exist_ok=True)
 
     # Paths to input and output images
-    input_image_path = "path/to/your/input_image.jpg"
-    output_image_path = "path/to/save/cropped_image.jpg"
+    input_image_path = base_dir / "2.jpg"
+    output_image_path = base_dir / "2_smartcrop.jpg"
+
+    # Initialize ImageProcessor
+    processor = ImageProcessor(images_dir=base_dir)
 
     # Perform smart cropping (no resizing)
-    success = processor.smart_crop(input_image_path, output_image_path)
+    success = processor.smart_crop(str(input_image_path), str(output_image_path))
     if success:
         print(f"Image processed (no resize) and saved to {output_image_path}")
     else:

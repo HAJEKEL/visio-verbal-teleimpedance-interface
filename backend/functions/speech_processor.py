@@ -162,18 +162,9 @@ class SpeechProcessor:
 
             # Prepare user message
             content = [{"type": "text", "text": transcript}]
-            if image_url:
-                logging.info(f"Original Image URL received: {image_url}")
-                
-                # Replace local URL with public Ngrok URL
-                public_base_url = "https://images-sunbird-dashing.ngrok-free.app"
-                parsed_url = urllib.parse.urlparse(image_url)
-                public_image_url = f"{public_base_url}{parsed_url.path}"
-                
-                logging.info(f"Modified Image URL for public access: {public_image_url}")
-                
+            if image_url:                
                 # Add a cache-busting parameter to ensure fresh requests
-                image_url_with_cache = f"{public_image_url}?cache_bust={int(time.time())}"
+                image_url_with_cache = f"{image_url}?cache_bust={int(time.time())}"
 
                 # Verify URL accessibility before proceeding
                 response = requests.get(image_url_with_cache, timeout=20)
@@ -209,14 +200,20 @@ class SpeechProcessor:
             
             logging.info(f"GPT response received: {gpt_response}")
 
-            # Update the conversation history with the assistant's response
-            self.conversation_history_processor.update_conversation_history(transcript, gpt_response, image_url=image_url)
-
             return gpt_response
 
         except Exception as e:
             logging.error(f"Error in get_gpt_response_vlm: {e}")
             return None
+    
+    def convert_local_image_url_to_public(self, image_url):
+        # Replace local URL with public Ngrok URL
+        public_base_url = "https://images-sunbird-dashing.ngrok-free.app"
+        parsed_url = urllib.parse.urlparse(image_url)
+        public_image_url = f"{public_base_url}{parsed_url.path}"
+        
+        logging.info(f"Modified Image URL for public access: {public_image_url}")
+        return public_image_url
 
     def text_to_speech(self, text):
         """
