@@ -96,8 +96,9 @@ class TeleimpedanceBackend:
         self.stiffness_matrix_processor = StiffnessMatrixProcessor(use_public_urls=False, local_static_server_port=LOCAL_STATIC_SERVER_PORT)
         self.image_processor = ImageProcessor()
         self.webhook_processor = WebhookProcessor()
+        # Add this line so that self.webhook_urls references the same list:
+        self.webhook_urls = self.webhook_processor.webhook_urls
         self.eye_tracker_processor = EyeTrackerProcessor(eye_tracker_url=eye_tracker_url)
-        self.webhook_urls = []  # Placeholder for webhook URLs
 
         # Set up routes
         self.setup_routes()
