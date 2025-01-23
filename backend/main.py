@@ -321,16 +321,24 @@ class TeleimpedanceBackend:
             result = self.stiffness_matrix_processor.extract_stiffness_matrix(response)
             stiffness_matrix, matrix_file_url, ellipsoid_plot_url = None, None, None
 
-            if result:
+            if result is not None:
                 stiffness_matrix, matrix_file_url = result
-                logging.info(f"Stiffness matrix to send: {stiffness_matrix}")
-                async with aiohttp.ClientSession() as session:
-                    for webhook_url in self.webhook_urls:
-                        try:
-                            await session.post(webhook_url, json=stiffness_matrix)
-                        except Exception as e:
-                            logging.error(f"Failed to notify webhook {webhook_url}: {str(e)}")
-                ellipsoid_plot_url = self.stiffness_matrix_processor.generate_ellipsoid_plot(stiffness_matrix)
+                # Double-check that stiffness_matrix is a valid 3×3 list
+                if stiffness_matrix and len(stiffness_matrix) == 3 and all(len(row) == 3 for row in stiffness_matrix):
+                    stiffness_matrix_ee = self.stiffness_matrix_processor.rotate_stiffness_camera_to_ee(stiffness_matrix)
+                    logging.info(f"Stiffness matrix to send (transformed camera to ee): {stiffness_matrix_ee}")
+                    
+                    # Notify webhooks
+                    async with aiohttp.ClientSession() as session:
+                        for webhook_url in self.webhook_urls:
+                            try:
+                                await session.post(webhook_url, json=stiffness_matrix_ee)
+                            except Exception as e:
+                                logging.error(f"Failed to notify webhook {webhook_url}: {str(e)}")
+
+                    ellipsoid_plot_url = self.stiffness_matrix_processor.generate_ellipsoid_plot(stiffness_matrix)
+                else:
+                    logging.info("No valid stiffness matrix found. Skipping rotation and webhook notification.")
 
             # Update conversation history
             if image_url:

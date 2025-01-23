@@ -110,6 +110,36 @@ class StiffnessMatrixProcessor:
         except commentjson.JSONLibraryException as e:
             logging.error(f"Error parsing JSON with comments: {e}")
             return None, None
+    
+    def rotate_stiffness_camera_to_ee(self, stiffness_matrix):
+        """
+        Rotates the given 3x3 stiffness matrix from the camera frame
+        to the end-effector frame by applying a 90° rotation about Z.
+
+        Parameters:
+            stiffness_matrix (list): A 3x3 stiffness matrix in camera frame.
+
+        Returns:
+            list: The transformed 3x3 stiffness matrix in end-effector frame.
+        """
+        # Convert input to a NumPy array
+        K_cam = np.array(stiffness_matrix, dtype=float)
+
+        # Define the rotation matrix for +90° about Z:
+        #   Rz(90°) = [[ 0, -1,  0],
+        #              [ 1,  0,  0],
+        #              [ 0,  0,  1]]
+        Rz_90 = np.array([
+            [0, -1,  0],
+            [1,  0,  0],
+            [0,  0,  1]
+        ], dtype=float)
+
+        # Transform stiffness: K_ee = R * K_cam * R^T
+        K_ee = Rz_90 @ K_cam @ Rz_90.T
+
+        # Convert back to a Python list of lists
+        return K_ee.tolist()
 
     def validate_stiffness_matrix(self, matrix):
         """
@@ -212,19 +242,27 @@ class StiffnessMatrixProcessor:
 
 
 if __name__ == "__main__":
-    # To switch between localhost and public URLs, set use_public_urls accordingly
+    # Initialize the processor
     processor = StiffnessMatrixProcessor(use_public_urls=True)
 
-    # Sample response containing the stiffness matrix in a JSON code block
-    sample_response ="Certainly! Here is the stiffness matrix with a high stiffness of 1000 N/m in the X direction and a stiffness of 200 N/m in the Y and Z directions:\n\n### Stiffness Matrix\n```json\n{\n  \"stiffness_matrix\": [\n    [1000, 0, 0],\n    [0, 200, 0],\n    [0, 0, 200]\n  ]\n}\n```"
+    # Test stiffness matrix in the camera frame
+    test_matrix = [[100, 0, 0], [0, 1000, 0], [0, 0, 100]]
 
+    print("Original Stiffness Matrix (Camera Frame):")
+    for row in test_matrix:
+        print(row)
 
-    # Extract the stiffness matrix from the sample response
-    stiffness_matrix, matrix_url = processor.extract_stiffness_matrix(sample_response)
-    if stiffness_matrix:
-        print(f"Stiffness Matrix URL: {matrix_url}")
+    # Transform the matrix to the end-effector frame
+    rotated_matrix = processor.rotate_stiffness_camera_to_ee(test_matrix)
 
-        # Generate the ellipsoid plot
-        ellipsoid_url = processor.generate_ellipsoid_plot(stiffness_matrix)
-        if ellipsoid_url:
-            print(f"Ellipsoid Plot URL: {ellipsoid_url}")
+    print("\nRotated Stiffness Matrix (End-Effector Frame):")
+    for row in rotated_matrix:
+        print(row)
+
+    # Verify expected output
+    # Expected transformation:
+    # Rotation of +90 degrees about Z axis swaps X and Y axes with a sign flip on Y.
+    # Expected matrix:
+    # [[   0, -100,    0],
+    #  [ 100,    0,    0],
+    #  [   0,    0,  100]]
