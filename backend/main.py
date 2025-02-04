@@ -318,7 +318,7 @@ class TeleimpedanceBackend:
                 response = self.speech_processor.get_gpt_response_vlm(transcript)
 
             # Process stiffness matrix
-            result = self.stiffness_matrix_processor.extract_stiffness_matrix(response)
+            result = self.stiffness_matrix_processor.extract_stiffness_matrix_2(response)
             stiffness_matrix, matrix_file_url, ellipsoid_plot_url = None, None, None
 
             if result is not None:

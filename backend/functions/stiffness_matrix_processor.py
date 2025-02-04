@@ -72,7 +72,7 @@ class StiffnessMatrixProcessor:
             tuple: A tuple containing the stiffness matrix and the URL to the saved matrix file.
         """
         # Define the pattern to extract the JSON code block
-        pattern = r"```json\n(.*?)\n```"
+        pattern = r"json\n(.*?)\n"
         match = re.search(pattern, response, re.DOTALL)
 
         if not match:
@@ -109,6 +109,46 @@ class StiffnessMatrixProcessor:
 
         except commentjson.JSONLibraryException as e:
             logging.error(f"Error parsing JSON with comments: {e}")
+            return None, None
+    
+    def extract_stiffness_matrix_2(self, response):
+        """
+        Extracts the stiffness matrix from a response string and saves it to a file.
+
+        Parameters:
+            response (str): The response string containing the stiffness matrix in a JSON code block.
+
+        Returns:
+            tuple: A tuple containing the stiffness matrix and the URL to the saved matrix file.
+        """
+        # Improved regex pattern to extract JSON block
+        pattern = r"```json\n(.*?)\n```"
+        match = re.search(pattern, response, re.DOTALL)
+
+        if not match:
+            logging.error("No JSON code block found in the response.")
+            return None, None
+
+        json_code = match.group(1).strip()
+
+        try:
+            # Parse the extracted JSON
+            data = json.loads(json_code)
+            stiffness_matrix = data.get("stiffness_matrix")
+
+            if stiffness_matrix is None:
+                logging.error("Key 'stiffness_matrix' not found in JSON data.")
+                return None, None
+
+            # Validate the stiffness matrix structure
+            if not self.validate_stiffness_matrix(stiffness_matrix):
+                return None, None
+
+            logging.info(f"Extracted Stiffness Matrix: {stiffness_matrix}")
+            return stiffness_matrix, None  # Returning None for file URL for now
+
+        except json.JSONDecodeError as e:
+            logging.error(f"Error parsing extracted JSON: {e}")
             return None, None
     
     def rotate_stiffness_camera_to_ee(self, stiffness_matrix):
@@ -240,29 +280,23 @@ class StiffnessMatrixProcessor:
             logging.error(f"Error generating ellipsoid plot: {e}")
             return None
 
-
 if __name__ == "__main__":
-    # Initialize the processor
-    processor = StiffnessMatrixProcessor(use_public_urls=True)
+    # Initialize the processor (can use local or public URLs)
+    processor = StiffnessMatrixProcessor()
 
-    # Test stiffness matrix in the camera frame
-    test_matrix = [[100, 0, 0], [0, 1000, 0], [0, 0, 100]]
+    # Define sample 3x3 stiffness matrices
+    example_matrices = [
+        [[100, 0, 0], [0, 100, 0], [0, 0, 100]],  # Isotropic stiffness
+        [[250, 0, 0], [0, 100, 0], [0, 0, 100]],  # Stiff along X
+        [[100, 0, 0], [0, 250, 0], [0, 0, 100]],  # Stiff along Y
+        [[100, 0, 0], [0, 175, -75], [0, -75, 175]]  # Off-diagonal coupling
+    ]
 
-    print("Original Stiffness Matrix (Camera Frame):")
-    for row in test_matrix:
-        print(row)
+    for idx, mat in enumerate(example_matrices):
+        print(f"\n--- Stiffness Matrix #{idx+1} (Camera Frame) ---")
+        for row in mat:
+            print(row)
 
-    # Transform the matrix to the end-effector frame
-    rotated_matrix = processor.rotate_stiffness_camera_to_ee(test_matrix)
-
-    print("\nRotated Stiffness Matrix (End-Effector Frame):")
-    for row in rotated_matrix:
-        print(row)
-
-    # Verify expected output
-    # Expected transformation:
-    # Rotation of +90 degrees about Z axis swaps X and Y axes with a sign flip on Y.
-    # Expected matrix:
-    # [[   0, -100,    0],
-    #  [ 100,    0,    0],
-    #  [   0,    0,  100]]
+        # Generate and save the stiffness ellipsoid plot
+        stiffness_ellipsoid_url = processor.generate_ellipsoid_plot(mat)
+        print(f"Stiffness Ellipsoid URL: {stiffness_ellipsoid_url}")

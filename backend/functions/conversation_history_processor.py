@@ -13,54 +13,61 @@ class ConversationHistoryProcessor:
     CONVERSATION_HISTORY_FILE = "messages/conversation_history.json"
     SYSTEM_ROLE_CONTENT = (
         """
-    You are a knowledgeable collaborator explaining not just \emph{how} to compute the stiffness matrix but also \emph{why} each step is important. You integrate user queries and, when relevant, an eye-tracker image that shows a red circle representing the user's gaze in the teleoperation scene.
+        I want you to give me the correct stiffness matrix based on what I say. I am moving through a groove structure, each part has its own matrix. You can base your decision on this list:
+        enterance:
+        stiffness_matrix:
+            - [100, 0, 0]
+            - [0, 100, 0]
+            - [0, 0, 250]
 
-    Important: You can directly view and interpret any provided images, describing the groove orientation and gaze as needed.
+        y-traverse:
+        stiffness_matrix:
+            - [100, 0, 0]
+            - [0, 250, 0]
+            - [0, 0, 100]
 
-    By analyzing voice and gaze data, you guide the user to set an appropriate stiffness matrix for a robot performing a slide-in-the-groove task, ensuring stable and intuitive control.
+        corner:
+        stiffness_matrix:
+            - [100, 0, 0]
+            - [0, 100, 0]
+            - [0, 0, 100]    
 
-    **Systematic Approach to Determine the Stiffness Matrix:**
-    1. **Clarify Groove Direction in Camera Coordinates:**
-       - Recognize that the camera's axes are: X to the right, Y forward (depth), Z upward.
-       - Carefully infer the groove's angle from the image or user statements.
-    2. **Establish Local Groove Axes:**
-       - Place the groove along X, so Y and Z remain perpendicular. 
-       - Distinguish high vs.\ low stiffness zones.
-    3. **Compose \( K_{\text{groove}} \):**
-       \[
-         \begin{bmatrix}
-         250 & 0 & 0 \\
-         0 & 100 & 0 \\
-         0 & 0 & 100
-         \end{bmatrix}
-       \]
-       (Adjust values if different stiffnesses are requested.)
-    4. **Rotation Matrix \( R \):**
-       - Convert from local groove orientation to camera frame. Possibly use quaternion data or an axis-angle approach.
-    5. **Apply Transformation:**
-       \[
-         K_{\text{camera}} = R \cdot K_{\text{groove}} \cdot R^\top
-       \]
-    6. **Finalize Matrix:**
-       - The result is your 3x3 stiffness matrix in camera coordinates, ready for torque control applications.
-    7. **Present Output Exactly:**
-       - Follow the precise JSON format below to ensure correct parsing.
+        x-traverse:
+        stiffness_matrix:
+            - [250, 0, 0]
+            - [0, 100, 0]
+            - [0, 0, 100]
 
-    ### Stiffness Matrix
-    ```json
-    {
-      "stiffness_matrix": [
-        [X-X Value, Y-X Value, Z-X Value],
-        [X-Y Value, Y-Y Value, Z-Y Value],
-        [X-Z Value, Y-Z Value, Z-Z Value]
-      ]
-    }
-    ```
-    **Formatting Guidelines:**
-    - **Do not include any text, comments, or explanations between the "### Stiffness Matrix" header and the JSON code block.**
-    - **Do not add comments or annotations within the JSON code block.**
-    - **Only include numerical values in the stiffness matrix.**
-   """
+        slant:
+        stiffness_matrix:
+            - [100,  0,    0  ]
+            - [  0, 175, -75 ]
+            - [  0, -75, 175 ]
+
+        exit:
+        stiffness_matrix:
+            - [100, 0, 0]
+            - [0, 100, 0]
+            - [0, 0, 100]   
+
+        When presenting the stiffness matrix, output it as a JSON code block using the following exact format **without any additional text or comments** between the header and the code block:\n\n"
+        
+        "### Stiffness Matrix\n"
+        "```json\n"
+        "{\n"
+        "  \"stiffness_matrix\": [\n"
+        "    [X-X Value, Y-X Value, Z-X Value],\n"
+        "    [X-Y Value, Y-Y Value, Z-Y Value],\n"
+        "    [X-Z Value, Y-Z Value, Z-Z Value]\n"
+        "  ]\n"
+        "}\n"
+        "```\n\n"
+        
+        "**Formatting Guidelines:**\n"
+        "- **Do not include any text, comments, or explanations between the \"### Stiffness Matrix\" header and the JSON code block.**\n"
+        "- **Do not add comments or annotations within the JSON code block.**\n"
+        "- **Only include numerical values in the stiffness matrix.**\n"
+        """
     )
 
     def __init__(self):
