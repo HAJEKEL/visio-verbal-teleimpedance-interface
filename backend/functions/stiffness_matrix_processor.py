@@ -54,6 +54,15 @@ class StiffnessMatrixProcessor:
 
         self.ensure_directories()
 
+        # --- SET GLOBAL MATPLOTLIB PARAMETERS HERE ---
+        plt.rcParams['figure.figsize'] = (8, 8)        # Default figure size
+        plt.rcParams['font.size'] = 14                 # Base font size
+        plt.rcParams['axes.labelsize'] = 14            # Axis label size
+        plt.rcParams['axes.titlesize'] = 16            # Title size
+        plt.rcParams['xtick.labelsize'] = 12           # Tick label size (x-axis)
+        plt.rcParams['ytick.labelsize'] = 12           # Tick label size (y-axis)
+        plt.rcParams['legend.fontsize'] = 12           # Legend font size (if used)
+
     def ensure_directories(self):
         """
         Ensures that the required directories exist.
@@ -229,15 +238,12 @@ class StiffnessMatrixProcessor:
                 logging.error("Stiffness matrix must be positive definite.")
                 return None
 
-            # The lengths of the ellipsoid axes are proportional to the square roots of eigenvalues
-            axes_lengths = np.sqrt(eigenvalues)
-
             # Generate ellipsoid data
             u = np.linspace(0, 2 * np.pi, 100)
             v = np.linspace(0, np.pi, 50)
-            x = axes_lengths[0] * np.outer(np.cos(u), np.sin(v))
-            y = axes_lengths[1] * np.outer(np.sin(u), np.sin(v))
-            z = axes_lengths[2] * np.outer(np.ones_like(u), np.cos(v))
+            x = eigenvalues[0] * np.outer(np.cos(u), np.sin(v))
+            y = eigenvalues[1] * np.outer(np.sin(u), np.sin(v))
+            z = eigenvalues[2] * np.outer(np.ones_like(u), np.cos(v))
 
             # Rotate the ellipsoid
             ellipsoid = np.array([x, y, z])
@@ -247,16 +253,36 @@ class StiffnessMatrixProcessor:
             fig = plt.figure(figsize=(8, 8))
             ax = fig.add_subplot(111, projection='3d')
             ax.plot_surface(
-                ellipsoid_rotated[0], ellipsoid_rotated[1], ellipsoid_rotated[2],
-                color='b', alpha=0.6, rstride=4, cstride=4, linewidth=0.5
+                ellipsoid_rotated[0],
+                ellipsoid_rotated[1],
+                ellipsoid_rotated[2],
+                color='b',
+                alpha=0.2,        # <- Increase transparency
+                rstride=4,
+                cstride=4,
+                linewidth=0.5
             )
+
+            # --- Add scaled eigenvectors as arrows from the origin ---
+            colors = ['r', 'g', 'm']  # One color per principal axis
+            for i in range(3):
+                ax.quiver(
+                    0, 0, 0,
+                    eigenvalues[i] * eigenvectors[0, i],
+                    eigenvalues[i] * eigenvectors[1, i],
+                    eigenvalues[i] * eigenvectors[2, i],
+                    color=colors[i],
+                    arrow_length_ratio=0.1,
+                    linewidth=3          # <- Thicker arrows
+                )
+
             ax.set_xlabel('X-axis')
             ax.set_ylabel('Y-axis')
             ax.set_zlabel('Z-axis')
             ax.set_title("Stiffness Ellipsoid")
 
             # Ensure equal scaling along all axes
-            max_radius = np.max(axes_lengths)
+            max_radius = np.max(eigenvalues)
             ax.set_box_aspect([1, 1, 1])
             ax.auto_scale_xyz(
                 [-max_radius, max_radius],
@@ -286,6 +312,7 @@ if __name__ == "__main__":
 
     # Define sample 3x3 stiffness matrices
     example_matrices = [
+        [[100, 0, 0], [0, 100, 0], [0, 0, 250]],  # Stiff along Z
         [[100, 0, 0], [0, 100, 0], [0, 0, 100]],  # Isotropic stiffness
         [[250, 0, 0], [0, 100, 0], [0, 0, 100]],  # Stiff along X
         [[100, 0, 0], [0, 250, 0], [0, 0, 100]],  # Stiff along Y

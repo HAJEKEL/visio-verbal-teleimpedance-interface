@@ -172,7 +172,7 @@ class SpeechProcessor:
                     logging.error(f"Image URL {image_url_with_cache} is inaccessible with status code {response.status_code}")
                     return None
 
-                content.append({"type": "image_url", "image_url": {"url": image_url_with_cache}})
+                content.append({"type": "image_url", "image_url": {"url": image_url_with_cache, "detail": "high"}})
 
             user_message = {
                 "role": "user",

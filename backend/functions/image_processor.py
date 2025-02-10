@@ -73,48 +73,32 @@ class ImageProcessor:
 
     async def process_uploaded_image(self, upload_file: UploadFile, base_url: str) -> str:
         """
-        Processes an uploaded image file: saves it temporarily, applies smart cropping,
-        saves the final image, and returns the URL to the final image.
+        Processes an uploaded image file: saves it directly without applying smart cropping,
+        and returns the URL to the saved image.
 
         Parameters:
             upload_file (UploadFile): The uploaded image file.
             base_url (str): The base URL to use when generating the file URL.
 
         Returns:
-            str: The URL to the final processed image, or None if processing failed.
+            str: The URL to the saved image, or None if processing failed.
         """
         try:
             # Generate a unique filename
             file_extension = os.path.splitext(upload_file.filename)[-1]
             unique_filename = f"{uuid.uuid4()}{file_extension}"
 
-            # Temp path for the raw image
-            temp_path = os.path.join(self.images_dir, f"temp_{unique_filename}")
+            # Define the final path where the image will be saved
+            final_path = os.path.join(self.images_dir, unique_filename)
 
-            # Final filename with "_cropped" appended
-            cropped_filename = f"{os.path.splitext(unique_filename)[0]}_cropped{file_extension}"
-            final_path = os.path.join(self.images_dir, cropped_filename)
-
-            # Save the uploaded file temporarily
-            with open(temp_path, "wb") as buffer:
+            # Save the uploaded file directly without processing
+            with open(final_path, "wb") as buffer:
                 file_content = await upload_file.read()
                 buffer.write(file_content)
-            logging.info(f"Uploaded file saved temporarily at {temp_path}")
+            logging.info(f"Uploaded file saved at {final_path}")
 
-            # Apply smart cropping (no resize)
-            success = self.smart_crop(temp_path, final_path)
-            if not success:
-                logging.error(f"Smart cropping failed for {temp_path}")
-                os.remove(temp_path)  # Clean up the temporary file
-                return None
-            logging.info(f"Smart cropped image saved at {final_path}")
-
-            # Remove the temporary file
-            os.remove(temp_path)
-            logging.info(f"Temporary file {temp_path} removed")
-
-            # Generate the file URL pointing to the cropped file
-            file_url = f"{base_url}/{self.images_dir}/{cropped_filename}"
+            # Generate the file URL pointing to the saved file
+            file_url = f"{base_url}/{self.images_dir}/{unique_filename}"
             logging.info(f"File URL generated: {file_url}")
 
             return file_url
@@ -122,6 +106,7 @@ class ImageProcessor:
         except Exception as e:
             logging.error(f"Error processing uploaded image: {e}")
             return None
+
 
 
 if __name__ == "__main__":
