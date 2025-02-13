@@ -22,6 +22,30 @@ type UseMessagesOptions = {
 const useMessages = ({ setIsLoading, setConfirmationDialog }: UseMessagesOptions) => {
     const [messages, setMessages] = useState<any[]>([]);
 
+    // ------------------------------
+    // Helper: create ephemeral message
+    // ------------------------------
+    const showEphemeralMessage = (content: string) => {
+        // Generate a unique ID for this ephemeral message
+        const ephemeralId = Date.now().toString();
+
+        // 1. Add the ephemeral message to the messages list
+        setMessages((prev) => [
+            ...prev,
+            {
+                sender: "system",
+                type: "text",
+                content,
+                ephemeralId,
+            },
+        ]);
+
+        // 2. Remove the ephemeral message after 3 seconds
+        setTimeout(() => {
+            setMessages((prev) => prev.filter((msg) => msg.ephemeralId !== ephemeralId));
+        }, 3000);
+    };
+
     const createBlobURL = (data: any) => {
         const blob = new Blob([data], { type: "audio/mpeg" });
         return window.URL.createObjectURL(blob);
@@ -45,10 +69,13 @@ const useMessages = ({ setIsLoading, setConfirmationDialog }: UseMessagesOptions
                 const formData = new FormData();
                 formData.append("file", blob, "myFile.wav");
 
-                // Ensure imageURL is properly appended as a string
+                // Ensure imageURL is properly appended
                 if (imageURL) {
-                    const extractedUrl = typeof imageURL === "object" && "file_url" in imageURL ? imageURL.file_url : imageURL;
-                    console.log("Adding image URL to formData:", extractedUrl); // Log the extracted image URL
+                    const extractedUrl =
+                        typeof imageURL === "object" && "file_url" in imageURL
+                            ? imageURL.file_url
+                            : imageURL;
+                    console.log("Adding image URL to formData:", extractedUrl);
                     formData.append("image_url", extractedUrl);
                     setImageURL(null);
                 } else {
@@ -59,14 +86,19 @@ const useMessages = ({ setIsLoading, setConfirmationDialog }: UseMessagesOptions
                     const { data, headers } = await postAudio(formData);
                     const audioUrl = createBlobURL(data);
 
-                    const newMessages: Array<{ sender: string; type: string; blobUrl?: string; dataUrl?: string; imageUrl?: string }> = [];
+                    const newMessages: Array<{
+                        sender: string;
+                        type: string;
+                        blobUrl?: string;
+                        dataUrl?: string;
+                        imageUrl?: string;
+                    }> = [];
 
-                    const matriceMessage = {
+                    newMessages.push({
                         sender: "matrice",
                         type: "audio",
                         blobUrl: audioUrl,
-                    };
-                    newMessages.push(matriceMessage);
+                    });
 
                     const matrixUrl = headers["x-matrix-url"];
                     const ellipsoidUrl = headers["x-ellipsoid-url"];
@@ -90,6 +122,7 @@ const useMessages = ({ setIsLoading, setConfirmationDialog }: UseMessagesOptions
                     setMessages((prevMessages) => [...prevMessages, ...newMessages]);
                     setIsLoading(false);
 
+                    // Play the returned audio
                     const audio = new Audio(audioUrl);
                     audio.play();
                 } catch (err) {
@@ -99,18 +132,26 @@ const useMessages = ({ setIsLoading, setConfirmationDialog }: UseMessagesOptions
             });
     };
 
+    // ------------------------------
+    // Handle Reset - replaces window.alert with ephemeral messages
+    // ------------------------------
     const handleReset = async () => {
         const message = "Are you sure you want to reset the conversation history?";
+
         const onConfirm = async () => {
             try {
                 await resetConversation();
-                setMessages([]);
-                setConfirmationDialog(null); // Close the dialog explicitly
-                window.alert("Conversation history has been reset.");
+                setMessages([]);        // Clear current messages
+                setConfirmationDialog(null);
+
+                // Show success ephemeral message
+                showEphemeralMessage("Conversation history has been reset.");
             } catch (error: any) {
                 console.error("Failed to reset conversation history:", error);
-                setConfirmationDialog(null); // Close the dialog even if the reset fails
-                window.alert("Failed to reset conversation history. Please try again.");
+                setConfirmationDialog(null);
+
+                // Show error ephemeral message
+                showEphemeralMessage("Failed to reset conversation history. Please try again.");
             }
         };
 
@@ -212,7 +253,6 @@ const useMessages = ({ setIsLoading, setConfirmationDialog }: UseMessagesOptions
             setIsLoading(false);
         }
     };
-
 
     return {
         messages,

@@ -26,3 +26,5 @@ docker-compose logs -f backend_main
 docker compose build
 ### Step 2: Spin up the containers with the desired profile(s)
 docker compose --profile backend up
+
+docker compose --profile backend --profile frontend --profile sigma7 --profile tobii up

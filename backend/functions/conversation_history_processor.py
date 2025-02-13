@@ -101,6 +101,20 @@ class ConversationHistoryProcessor:
         self.conversation_history_file = self.CONVERSATION_HISTORY_FILE
         self.system_role_content = self.SYSTEM_ROLE_CONTENT
         self.ensure_history_file()
+        self.pre_knowledge_messages = self.load_pre_knowledge_messages()
+
+    def load_pre_knowledge_messages(self):
+        """Loads the pre-knowledge messages from a JSON file."""
+        gt_path = os.path.join("experiment_data", "labels", "ground_truth_messages_lab.json")
+        try:
+            with open(gt_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            print(f"Warning: Pre-knowledge file not found at {gt_path}. Returning empty dictionary.")
+            return {}
+        except json.JSONDecodeError:
+            print(f"Error: Failed to decode JSON from {gt_path}. Returning empty dictionary.")
+            return {}
 
     def ensure_history_file(self):
         """
@@ -123,6 +137,10 @@ class ConversationHistoryProcessor:
             "content": [{"type": "text", "text": self.system_role_content}]
         }
         messages.append(system_role)
+        
+        # 2) Append optional pre-knowledge messages  # <-- NEW BLOCK
+        for msg in self.pre_knowledge_messages:
+            messages.append(msg)
 
         # Load conversation history
         try:
@@ -142,6 +160,8 @@ class ConversationHistoryProcessor:
         Updates the conversation history with a new transcription and response.
         If image_url is provided, it includes the image in the message.
         """
+        skip_count = 1 + len(self.pre_knowledge_messages)  # <-- NEW
+
         # Get recent conversation history excluding the system role
         recent_conversation_history = self.get_recent_conversation_history()[1:]
 

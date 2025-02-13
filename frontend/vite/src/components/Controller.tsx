@@ -118,11 +118,12 @@ const Controller = () => {
 
   useSpeechRecognition({ onResult: handleVoiceCommand, isHandsfree });
 
-  // Scroll to the bottom whenever messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 100); // Small delay to let React finish rendering
   }, [messages]);
-
+  
   return (
     <Layout
       messages={messages}

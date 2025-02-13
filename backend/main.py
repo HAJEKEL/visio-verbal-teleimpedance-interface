@@ -10,6 +10,8 @@ from fastapi.responses import StreamingResponse
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
+import time
+
 
 from pathlib import Path
 
@@ -102,6 +104,7 @@ class TeleimpedanceBackend:
 
         # Set up routes
         self.setup_routes()
+
             
     def setup_cors(self):
         """
@@ -290,11 +293,13 @@ class TeleimpedanceBackend:
             logging.error(f"Error initializing Sigma7: {type(e).__name__}: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
-    
     async def post_audio(self, file: UploadFile, image_url: Optional[str] = Form(None)):
         """
         Processes uploaded audio and generates a response.
         """
+        MAX_RETRIES = 3
+        RETRY_DELAY = 2  # seconds
+
         converted_audio_file_path = None
         try:
             # Log received data for debugging
@@ -303,19 +308,40 @@ class TeleimpedanceBackend:
 
             # Convert audio format
             converted_audio_file_path = await self.speech_processor.convert_audio_format(file)
+
             # Convert local image url to public image url
             if image_url:
                 image_url = self.speech_processor.convert_local_image_url_to_public(image_url)
+
             # Transcribe audio
             transcript = self.speech_processor.speech_to_text(converted_audio_file_path)
             if transcript is None:
                 raise HTTPException(status_code=500, detail="Error decoding audio")
 
-            # Fetch GPT response
-            if image_url:
-                response = self.speech_processor.get_gpt_response_vlm(transcript, image_url)
-            else:
-                response = self.speech_processor.get_gpt_response_vlm(transcript)
+            # Retry logic for OpenAI image access
+            response = None
+            for attempt in range(1, MAX_RETRIES + 1):
+                try:
+                    if image_url:
+                        response = self.speech_processor.get_gpt_response_vlm(transcript, image_url)
+                    else:
+                        response = self.speech_processor.get_gpt_response_vlm(transcript)
+
+                    if response:
+                        break  # If successful, exit retry loop
+
+                except Exception as e:
+                    logging.warning(f"[Attempt {attempt}/{MAX_RETRIES}] OpenAI API error: {e}")
+                    
+                    if attempt < MAX_RETRIES:
+                        wait_time = RETRY_DELAY * (2 ** (attempt - 1))
+                        logging.info(f"Retrying in {wait_time} seconds...")
+                        time.sleep(wait_time)
+                    else:
+                        logging.error("Max retries reached. Proceeding without image.")
+
+            if response is None:
+                raise HTTPException(status_code=500, detail="Failed to get a valid response from GPT")
 
             # Process stiffness matrix
             result = self.stiffness_matrix_processor.extract_stiffness_matrix_2(response)
@@ -323,7 +349,6 @@ class TeleimpedanceBackend:
 
             if result is not None:
                 stiffness_matrix, matrix_file_url = result
-                # Double-check that stiffness_matrix is a valid 3×3 list
                 if stiffness_matrix and len(stiffness_matrix) == 3 and all(len(row) == 3 for row in stiffness_matrix):
                     stiffness_matrix_ee = self.stiffness_matrix_processor.rotate_stiffness_camera_to_ee(stiffness_matrix)
                     logging.info(f"Stiffness matrix to send (transformed camera to ee): {stiffness_matrix_ee}")
@@ -342,11 +367,9 @@ class TeleimpedanceBackend:
 
             # Update conversation history
             if image_url:
-                # second param is response, third is image_url
                 self.conversation_history_processor.update_conversation_history(transcript, response, image_url)
             else:
                 self.conversation_history_processor.update_conversation_history(transcript, response)
-
 
             # Generate TTS audio
             audio_file_path = self.speech_processor.text_to_speech(response)
