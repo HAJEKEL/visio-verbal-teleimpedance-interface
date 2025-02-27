@@ -18,7 +18,7 @@ matplotlib.rcParams['ps.useafm'] = True
 matplotlib.rcParams['pdf.use14corefonts'] = True
 
 
-data = np.loadtxt('HRI_trial1_5.txt')
+data = np.loadtxt('demo_plots/HRI_trial1_4.txt')
 time = np.linspace(0,len(data)*0.005,len(data))
 
 

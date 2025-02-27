@@ -6,6 +6,8 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 import commentjson
+from itertools import permutations
+
 
 class StiffnessMatrixProcessor:
     """
@@ -211,6 +213,7 @@ class StiffnessMatrixProcessor:
 
         return True
 
+
     def generate_ellipsoid_plot(self, stiffness_matrix):
         """
         Generates an ellipsoid plot based on the stiffness matrix and saves it to a file.
@@ -219,52 +222,88 @@ class StiffnessMatrixProcessor:
             stiffness_matrix (list): The 3x3 stiffness matrix.
 
         Returns:
-            str: The URL to the saved ellipsoid plot image.
+            str: The URL to the saved ellipsoid plot image, or None on error.
         """
         try:
-            # Convert input matrix to NumPy array
+            # Convert input to NumPy array
             K = np.array(stiffness_matrix, dtype=float)
 
-            # Perform eigenvalue decomposition
+            # Perform eigen-decomposition (symmetric => use eigh)
             eigenvalues, eigenvectors = np.linalg.eigh(K)
 
-            # Sort eigenvalues and eigenvectors in descending order
+            # Sort by descending eigenvalues
             idx = eigenvalues.argsort()[::-1]
             eigenvalues = eigenvalues[idx]
-            eigenvectors = eigenvectors[:, idx]
+            eigenvectors = eigenvectors[:, idx]  # columns match the sorted eigenvalues
 
-            # Check for positive eigenvalues
+            # Quick check: must be positive definite
             if np.any(eigenvalues <= 0):
                 logging.error("Stiffness matrix must be positive definite.")
                 return None
 
-            # Generate ellipsoid data
+            # ----------------------------------------------------------------------
+            # 1) For each eigenvector (column), check if it's "aligned" with X, Y, or Z.
+            #    - If so, and it's negative along that axis, flip it.
+            #    - We do NOT reorder columns; we only do sign flips so the ellipsoid shape stays correct.
+            # ----------------------------------------------------------------------
+
+            # Threshold for "close to an axis" (could be 0.99, 0.999, etc.):
+            threshold = 0.999
+
+            # eigenvectors.shape = (3,3) => eigenvectors[:,0] is the 1st eigenvector, etc.
+            for i in range(3):
+                vec = eigenvectors[:, i]
+                # Find which global axis has the largest absolute component
+                main_axis = np.argmax(np.abs(vec))  # 0->X, 1->Y, 2->Z
+                # Check if that largest component is "close" to 1 in magnitude:
+                if np.abs(vec[main_axis]) > threshold:
+                    # If it's negative, flip this entire eigenvector
+                    if vec[main_axis] < 0:
+                        eigenvectors[:, i] = -vec
+
+            # ----------------------------------------------------------------------
+            # 2) Ensure a right-handed coordinate system
+            #    If the determinant is negative, flip the last eigenvector
+            # ----------------------------------------------------------------------
+            if np.linalg.det(eigenvectors) < 0:
+                eigenvectors[:, 2] = -eigenvectors[:, 2]
+
+            # ----------------------------------------------------------------------
+            # 3) Construct the ellipsoid data using the (already sorted) eigenvalues
+            # ----------------------------------------------------------------------
             u = np.linspace(0, 2 * np.pi, 100)
             v = np.linspace(0, np.pi, 50)
+
+            # If your ellipsoid is truly "1 / sqrt(eigenvalue)" or something, adjust here.
+            # We keep it simple: scale by eigenvalues directly, as in your original code.
             x = eigenvalues[0] * np.outer(np.cos(u), np.sin(v))
             y = eigenvalues[1] * np.outer(np.sin(u), np.sin(v))
             z = eigenvalues[2] * np.outer(np.ones_like(u), np.cos(v))
 
-            # Rotate the ellipsoid
-            ellipsoid = np.array([x, y, z])
-            ellipsoid_rotated = np.einsum('ij,jkl->ikl', eigenvectors, ellipsoid)
+            ellipsoid_local = np.array([x, y, z])  # shape = (3, 100, 50)
 
-            # Plot the ellipsoid
+            # Rotate the ellipsoid into global coordinates
+            ellipsoid_global = np.einsum('ij,jkl->ikl', eigenvectors, ellipsoid_local)
+
+            # ----------------------------------------------------------------------
+            # 4) Plot the ellipsoid
+            # ----------------------------------------------------------------------
             fig = plt.figure(figsize=(8, 8))
             ax = fig.add_subplot(111, projection='3d')
+
             ax.plot_surface(
-                ellipsoid_rotated[0],
-                ellipsoid_rotated[1],
-                ellipsoid_rotated[2],
+                ellipsoid_global[0],
+                ellipsoid_global[1],
+                ellipsoid_global[2],
                 color='b',
-                alpha=0.2,        # <- Increase transparency
+                alpha=0.2,  # Increase transparency
                 rstride=4,
                 cstride=4,
                 linewidth=0.5
             )
 
-            # --- Add scaled eigenvectors as arrows from the origin ---
-            colors = ['r', 'g', 'm']  # One color per principal axis
+            # Plot the principal axes as quivers from the origin
+            colors = ['r', 'g', 'b']  # X=red, Y=green, Z=blue
             for i in range(3):
                 ax.quiver(
                     0, 0, 0,
@@ -273,7 +312,7 @@ class StiffnessMatrixProcessor:
                     eigenvalues[i] * eigenvectors[2, i],
                     color=colors[i],
                     arrow_length_ratio=0.1,
-                    linewidth=3          # <- Thicker arrows
+                    linewidth=3
                 )
 
             ax.set_xlabel('X-axis')
@@ -281,7 +320,7 @@ class StiffnessMatrixProcessor:
             ax.set_zlabel('Z-axis')
             ax.set_title("Stiffness Ellipsoid")
 
-            # Ensure equal scaling along all axes
+            # Enforce equal scaling on all axes
             max_radius = np.max(eigenvalues)
             ax.set_box_aspect([1, 1, 1])
             ax.auto_scale_xyz(
@@ -290,13 +329,14 @@ class StiffnessMatrixProcessor:
                 [-max_radius, max_radius]
             )
 
-            # Save plot to the ellipsoids directory
+            # ----------------------------------------------------------------------
+            # 5) Save the figure
+            # ----------------------------------------------------------------------
             filename = f"{uuid.uuid4()}.png"
             file_path = os.path.join(self.ellipsoids_dir, filename)
             fig.savefig(file_path)
             plt.close(fig)
 
-            # Generate URL for the plot
             file_url = f"{self.ellipsoids_base_url}/{self.ellipsoids_dir}/{filename}"
             logging.info(f"Ellipsoid plot saved as {file_path}")
 
@@ -305,6 +345,9 @@ class StiffnessMatrixProcessor:
         except Exception as e:
             logging.error(f"Error generating ellipsoid plot: {e}")
             return None
+
+
+
 
 if __name__ == "__main__":
     # Initialize the processor (can use local or public URLs)
