@@ -87,6 +87,16 @@ role3:
     "    ]\n"
     "  }\n"
     "  ```\n"
+    "- **Groove diagonal in the YZ-plane:**\n"
+    "  ```json\n"
+    "  {\n"
+    "    \"stiffness_matrix\": [\n"
+    "      [100, 0, 0],\n"
+    "      [0, 175, -75],\n"
+    "      [0, -75, 175]\n"
+    "    ]\n"
+    "  }\n"
+    "  ```\n"
 
     "- **Entrance at the left-bottom of the structure:**\n"
     "  ```json\n"
@@ -99,6 +109,15 @@ role3:
     "  }\n"
     "  ```\n"
 
-
+    "- **Corner:**\n"
+    "  ```json\n"
+    "  {\n"
+    "    \"stiffness_matrix\": [\n"
+    "      [100, 0, 0],\n"
+    "      [0, 100, 0],\n"
+    "      [0, 0, 100]\n"
+    "    ]\n"
+    "  }\n"
+    "  ```\n"
     
     "If the groove does not match any of these predefined cases, determine the stiffness matrix by analyzing the groove's orientation and applying the appropriate high (250) and low (100) stiffness values accordingly."

@@ -9,7 +9,7 @@
             {
                 "type": "image_url",
                 "image_url": {
-                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/enh.jpg",
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/enl.jpg",
                     "detail": "high"
                 }
             }
@@ -34,7 +34,7 @@
             {
                 "type": "image_url",
                 "image_url": {
-                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/y1h.jpg",
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/y1l.jpg",
                     "detail": "high"
                 }
             }
@@ -59,7 +59,7 @@
             {
                 "type": "image_url",
                 "image_url": {
-                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/c1h.jpg",
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/c1l.jpg",
                     "detail": "high"
                 }
             }
@@ -84,7 +84,7 @@
             {
                 "type": "image_url",
                 "image_url": {
-                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/xh.jpg",
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/xl.jpg",
                     "detail": "high"
                 }
             }
@@ -109,7 +109,7 @@
             {
                 "type": "image_url",
                 "image_url": {
-                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/c2h.jpg",
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/c2l.jpg",
                     "detail": "high"
                 }
             }
@@ -129,12 +129,12 @@
         "content": [
             {
                 "type": "text",
-                "text": "Could you advise me on the stiffness matrix for this angled groove portion?"
+                "text": "Could you give me the stiffness matrix for this angled groove portion?"
             },
             {
                 "type": "image_url",
                 "image_url": {
-                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/sh.jpg",
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/sl.jpg",
                     "detail": "high"
                 }
             }

@@ -1,0 +1,217 @@
+[
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "Can you help me determine the stiffness matrix of this part of the groove?"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/enl.jpg",
+                    "detail": "high"
+                }
+            }
+        ]
+    },
+    {
+        "role": "system",
+        "content": [
+            {
+                "type": "text",
+                "text": "The red circle appears to mark the entrance. To move in or out of that we want to move in a direction normal to the table, so we want high stiffness in z direction and low in others to avoid damaging the groove.\n\n**Assumptions**\n1. The movement is in the z direction.\n2. Stiffness is high in z direction and low x and y directions.\n\n### Stiffness Matrix\n```json\n{\n  \"stiffness_matrix\": [\n    [100, 0, 0],\n    [0, 100, 0],\n    [0, 0, 250]\n  ]\n}\n```"
+            }
+        ]
+    },
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "I need the stiffness matrix for this next area of the groove."
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/y1l.jpg",
+                    "detail": "high"
+                }
+            }
+        ]
+    },
+    {
+        "role": "system",
+        "content": [
+            {
+                "type": "text",
+                "text": "The red circle indicates a groove primarily running along the Y-axis.\n\n**Assumptions**\n1. High stiffness aligned with Y.\n2. X and Z remain at 100 N/m.\n\n### Stiffness Matrix\n```json\n{\n  \"stiffness_matrix\": [\n    [100, 0, 0],\n    [0, 250, 0],\n    [0, 0, 100]\n  ]\n}\n```"
+            }
+        ]
+    },
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "Would you help me find the right stiffness for this groove section?"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/xl.jpg",
+                    "detail": "high"
+                }
+            }
+        ]
+    },
+    {
+        "role": "system",
+        "content": [
+            {
+                "type": "text",
+                "text": "Here, the red circle indicates a groove oriented along the X-axis.\n\n**Assumptions**\n1. High stiffness along X.\n2. Y and Z remain at 100 N/m.\n\n### Stiffness Matrix\n```json\n{\n  \"stiffness_matrix\": [\n    [250, 0, 0],\n    [0, 100, 0],\n    [0, 0, 100]\n  ]\n}\n```"
+            }
+        ]
+    },
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "I need the stiffness matrix for this next area of the groove."
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/y1l.jpg",
+                    "detail": "high"
+                }
+            }
+        ]
+    },
+    {
+        "role": "system",
+        "content": [
+            {
+                "type": "text",
+                "text": "The red circle indicates a groove primarily running along the Y-axis.\n\n**Assumptions**\n1. High stiffness aligned with Y.\n2. X and Z remain at 100 N/m.\n\n### Stiffness Matrix\n```json\n{\n  \"stiffness_matrix\": [\n    [100, 0, 0],\n    [0, 250, 0],\n    [0, 0, 100]\n  ]\n}\n```"
+            }
+        ]
+    },
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "Would you help me find the right stiffness for this groove section?"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/xl.jpg",
+                    "detail": "high"
+                }
+            }
+        ]
+    },
+    {
+        "role": "system",
+        "content": [
+            {
+                "type": "text",
+                "text": "Here, the red circle indicates a groove oriented along the X-axis.\n\n**Assumptions**\n1. High stiffness along X.\n2. Y and Z remain at 100 N/m.\n\n### Stiffness Matrix\n```json\n{\n  \"stiffness_matrix\": [\n    [250, 0, 0],\n    [0, 100, 0],\n    [0, 0, 100]\n  ]\n}\n```"
+            }
+        ]
+    },
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "please give me the stiffness matrix for this part stop recording"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/11189805-b5d0-484a-a4de-f0de2dd9cba4.jpg"
+                }
+            }
+        ]
+    },
+    {
+        "role": "system",
+        "content": [
+            {
+                "type": "text",
+                "text": "The red circle indicates an entrance.\n\n**Assumptions**\n1. High stiffness along Z.\n2. X and Y remain at 100 N/m.\n\n### Stiffness Matrix\n```json\n{\n  \"stiffness_matrix\": [\n    [100, 0, 0],\n    [0, 100, 0],\n    [0, 0, 250]\n  ]\n}\n```"
+            }
+        ]
+    },
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "please give me to stiffness for this part stop recording"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/5156f605-353f-4bfd-bf0a-321eb63e4965.jpg"
+                }
+            }
+        ]
+    },
+    {
+        "role": "system",
+        "content": [
+            {
+                "type": "text",
+                "text": "The red circle indicates a groove primarily running along the Y-axis.\n\n**Assumptions**\n1. High stiffness aligned with Y.\n2. X and Z remain at 100 N/m.\n\n### Stiffness Matrix\n```json\n{\n  \"stiffness_matrix\": [\n    [100, 0, 0],\n    [0, 250, 0],\n    [0, 0, 100]\n  ]\n}\n```"
+            }
+        ]
+    },
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "please give me the stiffness metrics for disbarred stop recording"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "https://images-sunbird-dashing.ngrok-free.app/images/566136b6-3ff7-46d1-8259-f078d349d604.jpg"
+                }
+            }
+        ]
+    },
+    {
+        "role": "system",
+        "content": [
+            {
+                "type": "text",
+                "text": "The red circle indicates a groove primarily running along the X-axis.\n\n**Assumptions**\n1. High stiffness along X.\n2. Y and Z remain at 100 N/m.\n\n### Stiffness Matrix\n```json\n{\n  \"stiffness_matrix\": [\n    [250, 0, 0],\n    [0, 100, 0],\n    [0, 0, 100]\n  ]\n}\n```"
+            }
+        ]
+    },
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "i want to move back through the structure please give me to previous stiffness matrix stop recording"
+            }
+        ]
+    },
+    {
+        "role": "system",
+        "content": [
+            {
+                "type": "text",
+                "text": "The previous stiffness matrix corresponds to a groove primarily running along the Y-axis.\n\n### Stiffness Matrix\n```json\n{\n  \"stiffness_matrix\": [\n    [100, 0, 0],\n    [0, 250, 0],\n    [0, 0, 100]\n  ]\n}\n```"
+            }
+        ]
+    }
+]
